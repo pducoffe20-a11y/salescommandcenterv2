@@ -245,3 +245,29 @@ export type CommandCenterAgentOutput =
 export type AgentOutputImportsByDestination = {
   [Destination in CommandCenterDestinationModel]: CommandCenterAgentOutput[];
 };
+export type AgentArtifactKind =
+  | "Meeting prep"
+  | "Follow-up"
+  | "Pre-call brief"
+  | "Voice review"
+  | "Research note";
+
+export type AgentArtifactStatus =
+  | "Draft"
+  | "Ready"
+  | "Shared"
+  | "Archived";
+
+export interface AgentArtifact {
+  id: string;
+  kind: AgentArtifactKind;
+  status: AgentArtifactStatus;
+  title: string;
+  accountId?: string;
+  contactId?: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  source?: string;
+  metadata?: Record<string, string | number | boolean | null>;
+}

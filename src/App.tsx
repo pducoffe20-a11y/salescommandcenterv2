@@ -3,6 +3,7 @@ import {
   BriefcaseBusiness,
   FileText,
   Flame,
+  Inbox,
   MailCheck,
   Mic2,
   Radar,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AccountWorkspace } from "./components/AccountWorkspace";
+import { AgentInbox } from "./components/AgentInbox";
 import { CommandCenter } from "./components/CommandCenter";
 import {
   FollowUpPage,
@@ -39,7 +41,8 @@ type AppView =
   | "brief"
   | "followup"
   | "voice"
-  | "prospects";
+  | "prospects"
+  | "agent-inbox";
 
 const navItems = [
   { id: "today", label: "Today", icon: Radar },
@@ -49,6 +52,7 @@ const navItems = [
   { id: "followup", label: "Follow-Up", icon: MailCheck },
   { id: "voice", label: "Pat Voice", icon: Sparkles },
   { id: "prospects", label: "Prospects", icon: Users },
+  { id: "agent-inbox", label: "Agent Inbox", icon: Inbox },
 ] satisfies Array<{ id: AppView; label: string; icon: typeof BarChart3 }>;
 
 export function App() {
@@ -153,6 +157,8 @@ export function App() {
         {activeView === "voice" && <VoiceReviewPage />}
 
         {activeView === "prospects" && <ProspectWorkspace />}
+
+        {activeView === "agent-inbox" && <AgentInbox />}
       </main>
     </div>
   );

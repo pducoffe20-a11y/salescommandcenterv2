@@ -1308,3 +1308,74 @@ select {
     padding: 0;
   }
 }
+
+.agent-inbox-page,
+.agent-account-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.agent-inbox-hero {
+  min-height: 280px;
+}
+
+.agent-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.3fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+}
+
+.agent-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.agent-account-group {
+  padding: 1rem;
+}
+
+.agent-artifact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.agent-artifact-card {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.045);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.agent-artifact-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(39, 245, 208, 0.35);
+  background: rgba(39, 245, 208, 0.055);
+}
+
+.artifact-facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+@media (max-width: 920px) {
+  .agent-toolbar,
+  .agent-artifact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-action-row {
+    justify-content: flex-start;
+  }
+}

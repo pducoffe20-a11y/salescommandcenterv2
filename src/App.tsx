@@ -5,6 +5,15 @@ import { dealReviews, intentAccounts, pipelineStages, runHistory, sourceConnecti
 
 type View = "home" | WorkflowId | "agent-inbox";
 const nav = [
+  ["home", "Home", Home],
+  ["settings", "Sources", Settings],
+  ["prospecting", "Prospecting", Search],
+  ["prospects", "Strategy", Users],
+  ["precall", "Pre-call", FileText],
+  ["deals", "Deals", BriefcaseBusiness],
+  ["intent", "Intent", RadioTower],
+  ["agent-inbox", "Agent Inbox", Inbox],
+  ["exports", "Exports", Download],
   ["home", "Home", Home], ["prospecting", "Prospecting", Search], ["prospects", "Strategy", Users], ["precall", "Pre-call", FileText], ["deals", "Deals", BriefcaseBusiness], ["intent", "Intent", RadioTower], ["agent-inbox", "Agent Inbox", Inbox], ["exports", "Exports", Download], ["settings", "Sources", Settings],
 ] as const;
 

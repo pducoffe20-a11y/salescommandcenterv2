@@ -1308,3 +1308,50 @@ select {
     padding: 0;
   }
 }
+
+.agent-inbox {
+  padding: clamp(1rem, 2vw, 1.4rem);
+}
+
+.agent-inbox .section-heading {
+  align-items: flex-start;
+}
+
+.agent-inbox h1 {
+  max-width: 780px;
+  font-size: clamp(2rem, 3vw, 3.4rem);
+}
+
+.agent-inbox .section-heading p {
+  max-width: 760px;
+}
+
+.artifact-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.artifact-card,
+.empty-state {
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.artifact-card {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.artifact-card .text-button {
+  gap: 0.4rem;
+}
+
+.danger-button {
+  color: var(--red);
+  background: rgba(255, 111, 145, 0.08);
+  border-color: rgba(255, 111, 145, 0.22);
+}

@@ -142,6 +142,109 @@ export interface ScoredProspect extends ProspectRow {
   actionBoard: string[];
 }
 
+export type JsonPrimitive = string | number | boolean | null;
+
+export type JsonValue =
+  | JsonPrimitive
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+export type AgentArtifactType =
+  | "trigger"
+  | "task"
+  | "meeting"
+  | "emailDraft"
+  | "note"
+  | "accountUpdate"
+  | "priorityItem";
+
+export type CommandCenterDestinationModel =
+  | "triggers"
+  | "tasks"
+  | "meetings"
+  | "emailDrafts"
+  | "notes"
+  | "accountUpdates"
+  | "priorityItems";
+
+export const agentArtifactDestinationModel = {
+  trigger: "triggers",
+  task: "tasks",
+  meeting: "meetings",
+  emailDraft: "emailDrafts",
+  note: "notes",
+  accountUpdate: "accountUpdates",
+  priorityItem: "priorityItems",
+} as const satisfies Record<AgentArtifactType, CommandCenterDestinationModel>;
+
+export interface AgentOutputImport {
+  id: string;
+  agentId: string;
+  artifactType: AgentArtifactType;
+  accountId?: string;
+  accountName?: string;
+  contactId?: string;
+  contactName?: string;
+  title: string;
+  summary: string;
+  source: string;
+  confidence: number;
+  createdAt: string;
+  recommendedAction: string;
+  rawPayload: JsonValue;
+}
+
+export interface AgentOutputArtifact extends AgentOutputImport {
+  destinationModel: CommandCenterDestinationModel;
+}
+
+export interface TriggerAgentOutput extends AgentOutputArtifact {
+  artifactType: "trigger";
+  destinationModel: "triggers";
+}
+
+export interface TaskAgentOutput extends AgentOutputArtifact {
+  artifactType: "task";
+  destinationModel: "tasks";
+}
+
+export interface MeetingAgentOutput extends AgentOutputArtifact {
+  artifactType: "meeting";
+  destinationModel: "meetings";
+}
+
+export interface EmailDraftAgentOutput extends AgentOutputArtifact {
+  artifactType: "emailDraft";
+  destinationModel: "emailDrafts";
+}
+
+export interface NoteAgentOutput extends AgentOutputArtifact {
+  artifactType: "note";
+  destinationModel: "notes";
+}
+
+export interface AccountUpdateAgentOutput extends AgentOutputArtifact {
+  artifactType: "accountUpdate";
+  destinationModel: "accountUpdates";
+}
+
+export interface PriorityItemAgentOutput extends AgentOutputArtifact {
+  artifactType: "priorityItem";
+  destinationModel: "priorityItems";
+}
+
+export type CommandCenterAgentOutput =
+  | TriggerAgentOutput
+  | TaskAgentOutput
+  | MeetingAgentOutput
+  | EmailDraftAgentOutput
+  | NoteAgentOutput
+  | AccountUpdateAgentOutput
+  | PriorityItemAgentOutput;
+
+export type AgentOutputImportsByDestination = {
+  [Destination in CommandCenterDestinationModel]: CommandCenterAgentOutput[];
+};
 export type AgentArtifactKind =
   | "Meeting prep"
   | "Follow-up"

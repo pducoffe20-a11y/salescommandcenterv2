@@ -1,9 +1,14 @@
 import type {
   Account,
+  AgentOutputImport,
+  AgentOutputImportsByDestination,
+  CommandCenterAgentOutput,
+  CommandCenterDestinationModel,
   Contact,
   ProspectRow,
   ScoredProspect,
 } from "../types";
+import { agentArtifactDestinationModel } from "../types";
 
 const bannedLanguage = [
   "leverage",
@@ -60,6 +65,16 @@ export interface VoiceReviewResult {
   flags: string[];
   rewrite: string;
 }
+
+const emptyAgentOutputImportsByDestination: AgentOutputImportsByDestination = {
+  triggers: [],
+  tasks: [],
+  meetings: [],
+  emailDrafts: [],
+  notes: [],
+  accountUpdates: [],
+  priorityItems: [],
+};
 
 export function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -226,6 +241,45 @@ export function parseProspects(raw: string): ProspectRow[] {
         notes: notes.join(", ") || "No notes listed",
       };
     });
+}
+
+export function mapAgentOutputToCommandCenter(
+  output: AgentOutputImport,
+): CommandCenterAgentOutput {
+  const destinationModel = agentArtifactDestinationModel[output.artifactType];
+
+  return {
+    ...output,
+    destinationModel,
+  } as CommandCenterAgentOutput;
+}
+
+export function importAgentOutputs(
+  outputs: AgentOutputImport[],
+): AgentOutputImportsByDestination {
+  return outputs.reduce<AgentOutputImportsByDestination>((destinations, output) => {
+    const artifact = mapAgentOutputToCommandCenter(output);
+    destinations[artifact.destinationModel].push(artifact);
+    return destinations;
+  }, cloneEmptyAgentOutputImportsByDestination());
+}
+
+export function getAgentOutputDestinationModel(
+  output: AgentOutputImport,
+): CommandCenterDestinationModel {
+  return agentArtifactDestinationModel[output.artifactType];
+}
+
+function cloneEmptyAgentOutputImportsByDestination(): AgentOutputImportsByDestination {
+  return {
+    triggers: [...emptyAgentOutputImportsByDestination.triggers],
+    tasks: [...emptyAgentOutputImportsByDestination.tasks],
+    meetings: [...emptyAgentOutputImportsByDestination.meetings],
+    emailDrafts: [...emptyAgentOutputImportsByDestination.emailDrafts],
+    notes: [...emptyAgentOutputImportsByDestination.notes],
+    accountUpdates: [...emptyAgentOutputImportsByDestination.accountUpdates],
+    priorityItems: [...emptyAgentOutputImportsByDestination.priorityItems],
+  };
 }
 
 export function scoreProspects(rows: ProspectRow[]): ScoredProspect[] {

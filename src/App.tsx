@@ -1,85 +1,32 @@
-import {
-  BarChart3,
-  BriefcaseBusiness,
-  FileText,
-  Flame,
-  Inbox,
-  MailCheck,
-  Mic2,
-  Radar,
-  Sparkles,
-  Users,
-} from "lucide-react";
-import { useMemo, useState } from "react";
-import { AccountWorkspace } from "./components/AccountWorkspace";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Activity, ArrowRight, BriefcaseBusiness, CheckCircle2, ClipboardCopy, Database, Download, FileJson, FileText, Gauge, Home, Inbox, RadioTower, Search, Settings, Sparkles, Users } from "lucide-react";
 import { AgentInbox } from "./components/AgentInbox";
-import { CommandCenter } from "./components/CommandCenter";
-import {
-  FollowUpPage,
-  MeetingPrepPage,
-  PreCallBriefPage,
-  VoiceReviewPage,
-} from "./components/Generators";
-import { ProspectWorkspace } from "./components/ProspectWorkspace";
-import {
-  accounts,
-  contacts,
-  emailDrafts,
-  meetings,
-  opportunityNotes,
-  priorityItems,
-  tasks,
-  timelineEvents,
-  triggers,
-  competitors,
-} from "./data/mockData";
-
-type AppView =
-  | "today"
-  | "account"
-  | "meeting"
-  | "brief"
-  | "followup"
-  | "voice"
-  | "prospects"
-  | "agent-inbox";
-
-const navItems = [
-  { id: "today", label: "Today", icon: Radar },
-  { id: "account", label: "Accounts", icon: BriefcaseBusiness },
-  { id: "meeting", label: "Meeting Prep", icon: Mic2 },
-  { id: "brief", label: "Brief", icon: FileText },
-  { id: "followup", label: "Follow-Up", icon: MailCheck },
-  { id: "voice", label: "Pat Voice", icon: Sparkles },
-  { id: "prospects", label: "Prospects", icon: Users },
-  { id: "agent-inbox", label: "Agent Inbox", icon: Inbox },
-] satisfies Array<{ id: AppView; label: string; icon: typeof BarChart3 }>;
-import { useMemo, useState } from "react";
-import { Activity, ArrowRight, BriefcaseBusiness, CheckCircle2, ClipboardCopy, Database, Download, FileJson, FileText, Gauge, Home, RadioTower, Search, Settings, Sparkles, Users } from "lucide-react";
 import { dealReviews, intentAccounts, pipelineStages, runHistory, sourceConnections, strategyRecords, territoryAccounts, workflows, type WorkflowId, type TerritoryAccount, type StrategyRecord, type IntentAccount } from "./workflowData";
 
-type View = "home" | WorkflowId;
+type View = "home" | WorkflowId | "agent-inbox";
 const nav = [
-  ["home", "Home", Home], ["prospecting", "Prospecting", Search], ["prospects", "Strategy", Users], ["precall", "Pre-call", FileText], ["deals", "Deals", BriefcaseBusiness], ["intent", "Intent", RadioTower], ["exports", "Exports", Download], ["settings", "Sources", Settings],
+  ["home", "Home", Home], ["prospecting", "Prospecting", Search], ["prospects", "Strategy", Users], ["precall", "Pre-call", FileText], ["deals", "Deals", BriefcaseBusiness], ["intent", "Intent", RadioTower], ["agent-inbox", "Agent Inbox", Inbox], ["exports", "Exports", Download], ["settings", "Sources", Settings],
 ] as const;
 
 export function App() {
   const [view, setView] = useState<View>("home");
   const [toast, setToast] = useState("");
+  const toastTimeout = useRef<number | undefined>(undefined);
   const [selectedAccount, setSelectedAccount] = useState(territoryAccounts[0]);
   const [selectedProspect, setSelectedProspect] = useState(strategyRecords[0]);
   const [selectedIntent, setSelectedIntent] = useState(intentAccounts[0]);
   const [dealIndex, setDealIndex] = useState(0);
 
-  function notify(message: string) {
+  const notify = useCallback((message: string) => {
     setToast(message);
-    window.setTimeout(() => setToast(""), 1800);
-  }
+    window.clearTimeout(toastTimeout.current);
+    toastTimeout.current = window.setTimeout(() => setToast(""), 1800);
+  }, []);
 
-  function copy(text: string, label = "Copied") {
-    navigator.clipboard?.writeText(text);
+  const copy = useCallback((text: string, label = "Copied") => {
+    void navigator.clipboard?.writeText(text);
     notify(label);
-  }
+  }, [notify]);
 
   return <div className="app-shell workflow-shell">
     <div className="texture-grid" aria-hidden="true" />
@@ -99,6 +46,7 @@ export function App() {
       {view === "precall" && <PreCallView copy={copy} />}
       {view === "deals" && <DealsView dealIndex={dealIndex} setDealIndex={setDealIndex} copy={copy} />}
       {view === "intent" && <IntentView selected={selectedIntent} onSelect={setSelectedIntent} copy={copy} />}
+      {view === "agent-inbox" && <AgentInbox />}
       {view === "exports" && <ExportsView copy={copy} />}
       {view === "settings" && <SettingsView />}
     </main>
@@ -173,13 +121,6 @@ function IntentView({ selected, onSelect, copy }: { selected: IntentAccount; onS
     <section className="panel module-panel intake-grid"><IntakeCard title="Run setup" fields={["Lookback: last 7 days", "Sender: abm-alerts@6sense.com", "Story matching: on", "Output: Markdown + JSON"]}/><KpiStrip items={[["Emails found", "3"], ["Accounts", "3"], ["Repeated", "2"], ["Drafts", "3"]]}/></section>
     <section className="intent-layout"><div className="panel module-panel"><h2>Account coverage</h2>{intentAccounts.map((a) => <button className="intent-row" key={a.name} onClick={() => onSelect(a)}><strong>{a.name}</strong><span>{a.evidenceStrength}</span><span>{a.repeatedActivity}</span><span>{a.storyMatch ?? "No forced story"}</span></button>)}</div><div className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Account detail drawer</span><h2>{selected.name}</h2></div><button className="text-button" onClick={() => copy(selected.draft, "Draft copied")}>Copy draft</button></div><Detail title="Raw alert evidence" items={selected.rawEvidence}/><h3>Plain-language sales takeaway</h3><p>{selected.summary}</p><h3>Outreach draft</h3><p className="message-box">{selected.draft}</p></div></section>
   </div>;
-        {activeView === "prospects" && <ProspectWorkspace />}
-
-        {activeView === "agent-inbox" && <AgentInbox />}
-        {activeView === "inbox" && <AgentInbox />}
-      </main>
-    </div>
-  );
 }
 
 function ExportsView({ copy }: { copy: (text: string, label?: string) => void }) { const exports = ["JSON payloads", "CSV worklists", "Markdown briefs", "TXT summaries", "Self-contained HTML dashboards"]; return <div className="workflow-page"><PageHeader eyebrow="Export center" title="Download and copy mock artifacts" body="Export actions are simulated for v1, with clean seams for future generated files and standalone HTML dashboards."/><section className="export-grid">{exports.map((e) => <article className="panel module-panel export-card" key={e}><FileJson size={22}/><h2>{e}</h2><p>Mock export package. Future backend can replace this with real file generation.</p><button className="text-button" onClick={() => copy(`${e} mock export`, `${e} copied`)}><Download size={16}/> Export</button></article>)}</section></div>; }

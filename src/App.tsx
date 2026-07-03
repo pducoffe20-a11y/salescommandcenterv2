@@ -19,18 +19,7 @@ import {
   VoiceReviewPage,
 } from "./components/Generators";
 import { ProspectWorkspace } from "./components/ProspectWorkspace";
-import {
-  accounts,
-  contacts,
-  emailDrafts,
-  meetings,
-  opportunityNotes,
-  priorityItems,
-  tasks,
-  timelineEvents,
-  triggers,
-  competitors,
-} from "./data/mockData";
+import { salesData } from "./services/agentImports";
 
 type AppView =
   | "today"
@@ -53,6 +42,18 @@ const navItems = [
 
 export function App() {
   const [activeView, setActiveView] = useState<AppView>("today");
+  const {
+    accounts,
+    contacts,
+    meetings,
+    tasks,
+    triggers,
+    emailDrafts,
+    priorityItems,
+    opportunityNotes,
+    competitors,
+    timelineEvents,
+  } = salesData;
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0].id);
 
   const selectedAccount = useMemo(

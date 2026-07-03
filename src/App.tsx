@@ -1,3 +1,59 @@
+import {
+  BarChart3,
+  BriefcaseBusiness,
+  FileText,
+  Flame,
+  Inbox,
+  MailCheck,
+  Mic2,
+  Radar,
+  Sparkles,
+  Users,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { AccountWorkspace } from "./components/AccountWorkspace";
+import { AgentInbox } from "./components/AgentInbox";
+import { CommandCenter } from "./components/CommandCenter";
+import {
+  FollowUpPage,
+  MeetingPrepPage,
+  PreCallBriefPage,
+  VoiceReviewPage,
+} from "./components/Generators";
+import { ProspectWorkspace } from "./components/ProspectWorkspace";
+import {
+  accounts,
+  contacts,
+  emailDrafts,
+  meetings,
+  opportunityNotes,
+  priorityItems,
+  tasks,
+  timelineEvents,
+  triggers,
+  competitors,
+} from "./data/mockData";
+
+type AppView =
+  | "today"
+  | "account"
+  | "meeting"
+  | "brief"
+  | "followup"
+  | "voice"
+  | "prospects"
+  | "agent-inbox";
+
+const navItems = [
+  { id: "today", label: "Today", icon: Radar },
+  { id: "account", label: "Accounts", icon: BriefcaseBusiness },
+  { id: "meeting", label: "Meeting Prep", icon: Mic2 },
+  { id: "brief", label: "Brief", icon: FileText },
+  { id: "followup", label: "Follow-Up", icon: MailCheck },
+  { id: "voice", label: "Pat Voice", icon: Sparkles },
+  { id: "prospects", label: "Prospects", icon: Users },
+  { id: "agent-inbox", label: "Agent Inbox", icon: Inbox },
+] satisfies Array<{ id: AppView; label: string; icon: typeof BarChart3 }>;
 import { useMemo, useState } from "react";
 import { Activity, ArrowRight, BriefcaseBusiness, CheckCircle2, ClipboardCopy, Database, Download, FileJson, FileText, Gauge, Home, RadioTower, Search, Settings, Sparkles, Users } from "lucide-react";
 import { dealReviews, intentAccounts, pipelineStages, runHistory, sourceConnections, strategyRecords, territoryAccounts, workflows, type WorkflowId, type TerritoryAccount, type StrategyRecord, type IntentAccount } from "./workflowData";
@@ -119,6 +175,7 @@ function IntentView({ selected, onSelect, copy }: { selected: IntentAccount; onS
   </div>;
         {activeView === "prospects" && <ProspectWorkspace />}
 
+        {activeView === "agent-inbox" && <AgentInbox />}
         {activeView === "inbox" && <AgentInbox />}
       </main>
     </div>

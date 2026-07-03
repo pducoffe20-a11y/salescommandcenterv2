@@ -14,6 +14,7 @@ const nav = [
   ["intent", "Intent", RadioTower],
   ["agent-inbox", "Agent Inbox", Inbox],
   ["exports", "Exports", Download],
+  ["home", "Home", Home], ["prospecting", "Prospecting", Search], ["prospects", "Strategy", Users], ["precall", "Pre-call", FileText], ["deals", "Deals", BriefcaseBusiness], ["intent", "Intent", RadioTower], ["agent-inbox", "Agent Inbox", Inbox], ["exports", "Exports", Download], ["settings", "Sources", Settings],
 ] as const;
 
 export function App() {

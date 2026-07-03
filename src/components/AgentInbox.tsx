@@ -1,6 +1,9 @@
 import { Archive, Inbox, Upload, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { AgentArtifact, AgentArtifactKind, AgentArtifactStatus } from "../types";
+import { Archive, Inbox, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { AgentArtifact } from "../types";
 import {
   deleteArtifact,
   loadArtifacts,

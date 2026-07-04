@@ -21,6 +21,7 @@ export function ProspectWorkspace() {
   const [prospects, setProspects] = useState<ScoredProspect[]>(() =>
     scoreProspects(parseProspects(sampleProspects)),
   );
+  const [boardMessage, setBoardMessage] = useState("");
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,6 +37,12 @@ export function ProspectWorkspace() {
   }, [prospects]);
 
   const topProspects = [...prospects].sort((a, b) => b.score - a.score).slice(0, 3);
+
+  function createAccountBoard(prospect: ScoredProspect) {
+    setBoardMessage(
+      `${prospect.account} board staged with ${prospect.actionBoard.length} action items.`,
+    );
+  }
 
   return (
     <div className="tool-page">
@@ -162,12 +169,18 @@ export function ProspectWorkspace() {
                 </ul>
               </div>
             </div>
-            <button className="text-button" type="button">
+            <button className="text-button" type="button" onClick={() => createAccountBoard(prospect)}>
               Create account board
             </button>
           </article>
         ))}
       </section>
+
+      {boardMessage && (
+        <div className="toast inline-toast" role="status">
+          {boardMessage}
+        </div>
+      )}
 
       <section className="panel grouped-panel" aria-labelledby="grouped-heading">
         <div className="section-heading">

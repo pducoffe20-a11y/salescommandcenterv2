@@ -3,19 +3,19 @@ import { Activity, ArrowRight, BriefcaseBusiness, CheckCircle2, ClipboardCopy, D
 import { seedSalesData, type NormalizedSalesData } from "../../services/agentImports";
 import { deleteConnectorKey, loadConnectorKeys, maskConnectorKey, saveConnectorKey } from "../../services/connectorKeys";
 import { dealReviews, intentAccounts, pipelineStages, runHistory, sourceConnections, strategyRecords, territoryAccounts, workflows, type WorkflowId, type TerritoryAccount, type StrategyRecord, type IntentAccount } from "../../workflowData";
-import type { View } from "../../router/appRouter";
+import { routeByView, type View } from "../../router/appRouter";
 
 export function HomeView({ onLaunch, commandCenterData }: { onLaunch: (id: View) => void; commandCenterData: NormalizedSalesData }) {
   return <div className="workflow-page">
     <section className="mission-hero"><div><span className="eyebrow">D2L Brightspace agentic workflow home</span><h1>Mission control for outbound judgment.</h1><p>Organize Pat's ChatGPT-built seller agents into one evidence-aware command center for prioritization, strategy, meeting prep, deal review, and timely follow-up.</p><div className="hero-actions"><button className="primary-button" onClick={() => onLaunch("prospecting")}><Sparkles size={18}/> Start prospecting run</button><button className="secondary-button" onClick={() => onLaunch("settings")}>Review source readiness</button></div></div><EvidenceRail /></section>
-    <section className="workflow-card-grid">{workflows.map((w) => <article className={`workflow-card accent-${w.accent}`} key={w.id}><div className="card-topline"><span>{w.status}</span><Activity size={18}/></div><h2>{w.name}</h2><p>{w.purpose}</p><div className="io-grid"><MiniList title="Inputs" items={w.inputs}/><MiniList title="Outputs" items={w.outputs}/></div><button className="text-button" onClick={() => onLaunch(w.id)}>Launch workflow <ArrowRight size={16}/></button></article>)}</section>
+    <section className="workflow-card-grid">{workflows.map((w) => <article className={`workflow-card accent-${w.accent}`} key={w.id}><div className="card-topline"><span>{w.status}</span><Activity size={18}/></div><h2>{w.name}</h2><p>{w.purpose}</p><div className="io-grid"><MiniList title="Inputs" items={w.inputs}/><MiniList title="Outputs" items={w.outputs}/></div><button className="text-button" type="button" aria-label={`Launch ${w.name}`} onClick={() => onLaunch(w.id)}>Launch workflow <ArrowRight size={16}/></button></article>)}</section>
     <section className="two-panel"><RunHistory commandCenterData={commandCenterData} /><SourcePanel compact /></section>
   </div>;
 }
 
 function EvidenceRail() { return <aside className="evidence-rail"><strong>Non-negotiables</strong>{["No invented evidence", "Assumptions labeled", "JSON is strategy truth", "No autonomous sending", "Future connectors are placeholders"].map((x) => <span className="status-chip" key={x}><CheckCircle2 size={14}/>{x}</span>)}</aside>; }
 function MiniList({ title, items }: { title: string; items: string[] }) { return <div><span className="eyebrow">{title}</span>{items.map((i) => <p key={i}>{i}</p>)}</div>; }
-function RunHistory({ commandCenterData }: { commandCenterData?: NormalizedSalesData }) { const promotedRuns = commandCenterData ? buildPromotedRuns(commandCenterData) : []; return <section className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Run history</span><h2>Recent mock workflow runs</h2></div><Gauge size={20}/></div><div className="table-list">{[...promotedRuns, ...runHistory].map((r) => <div className="table-row" key={`${r.workflow}-${r.date}-${r.output}`}><strong>{r.workflow}</strong><span>{r.date}</span><span>{r.source}</span><span>{r.output}</span><em>{r.status}</em><button className="text-button">Reopen</button></div>)}</div></section>; }
+function RunHistory({ commandCenterData }: { commandCenterData?: NormalizedSalesData }) { const promotedRuns = commandCenterData ? buildPromotedRuns(commandCenterData) : []; return <section className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Run history</span><h2>Recent mock workflow runs</h2></div><Gauge size={20}/></div><div className="table-list">{[...promotedRuns, ...runHistory].map((r) => <div className="table-row" key={`${r.workflow}-${r.date}-${r.output}`}><strong>{r.workflow}</strong><span>{r.date}</span><span>{r.source}</span><span>{r.output}</span><em>{r.status}</em><a className="text-button" href={pathForRun(r.workflow)} aria-label={`Reopen ${r.workflow}`}>Reopen</a></div>)}</div></section>; }
 function SourcePanel({ compact = false }: { compact?: boolean }) { return <section className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Integration readiness</span><h2>Source placeholders</h2></div><Database size={20}/></div><div className={compact ? "source-grid compact" : "source-grid"}>{sourceConnections.map((s) => <div className="source-card" key={s.name}><strong>{s.name}</strong><span className={`source-state state-${s.state.replace(/ /g, "-")}`}>{s.state}</span><p>{s.note}</p></div>)}</div></section>; }
 
 export function ProspectingView({ selected, onSelect, copy, commandCenterData }: { selected: TerritoryAccount; onSelect: (a: TerritoryAccount) => void; copy: (text: string, label?: string) => void; commandCenterData: NormalizedSalesData }) {
@@ -40,10 +40,11 @@ export function StrategyView({ selected, onSelect, copy }: { selected: StrategyR
 }
 function ScorePill({ score }: { score: number }) { return <span className="score-pill">{score}</span>; }
 function JsonPanel({ payload, copy }: { payload: unknown; copy: (text: string, label?: string) => void }) { const text = JSON.stringify(payload, null, 2); return <section className="panel module-panel json-panel"><div className="section-heading"><div><span className="eyebrow">JSON output center</span><h2>outreach_preparation_payloads.json</h2></div><button className="text-button" onClick={() => copy(text, "JSON copied")}><ClipboardCopy size={16}/> Copy</button></div><pre>{text}</pre></section>; }
-function MessagePreview({ record, copy }: { record: StrategyRecord; copy: (text: string, label?: string) => void }) { return <div className="evidence-box"><h3>Review-safe outreach payload</h3><strong>{record.outreach_payload.subject_line || "No draft for suppressed record"}</strong><p>{record.outreach_payload.email_body || record.outreach_payload.suppression_reason}</p><button className="text-button" onClick={() => copy(record.outreach_payload.email_body, "Draft copied")}>Copy draft</button></div>; }
+function MessagePreview({ record, copy }: { record: StrategyRecord; copy: (text: string, label?: string) => void }) { const copyText = record.outreach_payload.email_body || record.outreach_payload.suppression_reason; return <div className="evidence-box"><h3>Review-safe outreach payload</h3><strong>{record.outreach_payload.subject_line || "No draft for suppressed record"}</strong><p>{copyText}</p><button className="text-button" type="button" onClick={() => copy(copyText, record.outreach_payload.email_body ? "Draft copied" : "Suppression note copied")}>{record.outreach_payload.email_body ? "Copy draft" : "Copy note"}</button></div>; }
 
 export function PreCallView({ copy }: { copy: (text: string, label?: string) => void }) {
   const [meetingType, setMeetingType] = useState("Discovery");
+  const intakeFields = ["Account", "Contact", "Title", "Vertical", "Trigger event", "Desired next step"];
   const sections = useMemo(() => [
     ["Account Snapshot", "Grounded: healthcare association and CE context are provided. Inference: the opportunity may involve reporting and member learner engagement. Open question: whether this is a platform priority now."],
     ["Contact Angle", "Likely education owner. Engage with practical questions about program delivery, completion reporting, and what would make change worth the effort."],
@@ -53,12 +54,15 @@ export function PreCallView({ copy }: { copy: (text: string, label?: string) => 
     ["Opener + Next Step Ask", "Thanks for making time. I thought we could keep this practical: understand what your team is trying to improve in member education, pressure-test whether Brightspace is relevant, and decide if there is a small next step worth taking. If useful, the light next step could be a 25-minute working session around one CE workflow."],
   ], []);
   return <div className="workflow-page"><PageHeader eyebrow="Module 3" title="Pre-Call Briefing Studio" body="A calm sales prep cockpit that produces the required six-part brief and a standalone HTML artifact placeholder." />
-    <section className="precall-layout"><div className="panel module-panel tool-form"><h2>Context intake</h2>{["Account", "Contact", "Title", "Vertical", "Trigger event", "Desired next step"].map((f) => <label key={f}>{f}<input defaultValue={f === "Account" ? "North Coast Healthcare Association" : ""}/></label>)}<label>Meeting type<select value={meetingType} onChange={(e) => setMeetingType(e.target.value)}>{["Discovery", "First meeting", "Demo prep", "Follow-up", "Renewal / expansion", "Executive conversation"].map((m) => <option key={m}>{m}</option>)}</select></label><textarea defaultValue="Sparse notes: member learning leader, possible CE reporting angle, no confirmed budget or platform."/><Readiness /></div><div className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Source context</span><h2>Mock source mode</h2></div></div><div className="source-grid compact">{["User-provided context: used", "Outlook Calendar: not connected", "Outlook Email: not used", "Zoom: not connected"].map((s) => <div className="source-card" key={s}><strong>{s}</strong><p>Placeholder only for v1.</p></div>)}</div><Checklist type={meetingType}/></div></section>
+    <section className="precall-layout"><div className="panel module-panel tool-form"><h2>Context intake</h2>{intakeFields.map((f) => {
+      const id = `precall-${slugLabel(f)}`;
+      return <label htmlFor={id} key={f}>{f}<input id={id} defaultValue={f === "Account" ? "North Coast Healthcare Association" : ""}/></label>;
+    })}<label htmlFor="precall-meeting-type">Meeting type<select id="precall-meeting-type" aria-label="Meeting type" value={meetingType} onChange={(e) => setMeetingType(e.target.value)}>{["Discovery", "First meeting", "Demo prep", "Follow-up", "Renewal / expansion", "Executive conversation"].map((m) => <option key={m}>{m}</option>)}</select></label><textarea aria-label="Pre-call context notes" defaultValue="Sparse notes: member learning leader, possible CE reporting angle, no confirmed budget or platform."/><Readiness /></div><div className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Source context</span><h2>Mock source mode</h2></div></div><div className="source-grid compact">{["User-provided context: used", "Outlook Calendar: not connected", "Outlook Email: not used", "Zoom: not connected"].map((s) => <div className="source-card" key={s}><strong>{s}</strong><p>Placeholder only for v1.</p></div>)}</div><Checklist type={meetingType}/></div></section>
     <section className="brief-output">{sections.map(([heading, body]) => <article className="brief-section-card" key={heading}><div><h2>{heading}</h2><span className="status-chip">confidence: medium</span></div><p>{body}</p><details><summary>Rationale</summary><p>Separates grounded facts, inference, and open questions. No connector retrieval in v1.</p></details><button className="text-button" onClick={() => copy(`${heading}\n${body}`, "Section copied")}>Copy section</button></article>)}</section>
   </div>;
 }
 function Readiness() { return <div><div className="meter-track"><span style={{width:"72%"}} /></div><p>Prep completeness: 72%. Thin-context warning: budget, current platform, and decision process are unknown.</p></div>; }
-function Checklist({ type }: { type: string }) { const base = ["Confirm objective", "Name known facts", "Label assumptions", "Prepare soft next step"]; return <div className="check-panel"><h3>{type} checklist</h3>{base.map((b, i) => <label className="check-row" key={b}><input type="checkbox" defaultChecked={i < 2}/>{b}</label>)}</div>; }
+function Checklist({ type }: { type: string }) { const base = ["Confirm objective", "Name known facts", "Label assumptions", "Prepare soft next step"]; return <div className="check-panel"><h3>{type} checklist</h3>{base.map((b, i) => { const id = `precall-check-${slugLabel(b)}`; return <label className="check-row" htmlFor={id} key={b}><input id={id} type="checkbox" aria-label={b} defaultChecked={i < 2}/>{b}</label>; })}</div>; }
 
 export function DealsView({ dealIndex, setDealIndex, copy, commandCenterData }: { dealIndex: number; setDealIndex: (n: number) => void; copy: (text: string, label?: string) => void; commandCenterData: NormalizedSalesData }) {
   const deal = dealReviews[dealIndex];
@@ -75,7 +79,7 @@ export function IntentView({ selected, onSelect, copy, commandCenterData }: { se
   </div>;
 }
 
-export function ExportsView({ copy }: { copy: (text: string, label?: string) => void }) { const exports = ["JSON payloads", "CSV worklists", "Markdown briefs", "TXT summaries", "Self-contained HTML dashboards"]; return <div className="workflow-page"><PageHeader eyebrow="Export center" title="Download and copy mock artifacts" body="Export actions are simulated for v1, with clean seams for future generated files and standalone HTML dashboards."/><section className="export-grid">{exports.map((e) => <article className="panel module-panel export-card" key={e}><FileJson size={22}/><h2>{e}</h2><p>Mock export package. Future backend can replace this with real file generation.</p><button className="text-button" onClick={() => copy(`${e} mock export`, `${e} copied`)}><Download size={16}/> Export</button></article>)}</section></div>; }
+export function ExportsView({ copy }: { copy: (text: string, label?: string) => void }) { const exports = ["JSON payloads", "CSV worklists", "Markdown briefs", "TXT summaries", "Self-contained HTML dashboards"]; return <div className="workflow-page"><PageHeader eyebrow="Export center" title="Download and copy mock artifacts" body="Export actions are simulated for v1, with clean seams for future generated files and standalone HTML dashboards."/><section className="export-grid">{exports.map((e) => <article className="panel module-panel export-card" key={e}><FileJson size={22}/><h2>{e}</h2><p>Mock export package. Future backend can replace this with real file generation.</p><button className="text-button" type="button" aria-label={`Export ${e}`} onClick={() => copy(`${e} mock export`, `${e} copied`)}><Download size={16}/> Export</button></article>)}</section></div>; }
 export function SettingsView() { return <div className="workflow-page"><PageHeader eyebrow="Settings" title="Source and integration readiness" body="No live retrieval is enabled. These cards define future connection points for Outlook, Zoom, Slack, SharePoint, web search, customer stories, workbook parsing, and Salesforce."/><ConnectorKeyVault /><SourcePanel /></div>; }
 
 function ConnectorKeyVault() {
@@ -153,6 +157,7 @@ function ConnectorKeyVault() {
 }
 
 function PageHeader({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) { return <header className="tool-header"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{body}</p></header>; }
+function slugLabel(value: string) { return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 function IntakeCard({ title, fields }: { title: string; fields: string[] }) { return <div><span className="eyebrow">Mock controls</span><h2>{title}</h2><div className="field-chips">{fields.map((f) => <span className="status-chip" key={f}>{f}</span>)}</div></div>; }
 function KpiStrip({ items }: { items: string[][] }) { return <div className="kpi-strip module-kpis">{items.map(([label, value]) => <div className="kpi-card" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>; }
 function Detail({ title, items }: { title: string; items: string[] }) { return <div className="evidence-box"><h3>{title}</h3><ul>{items.map((i) => <li key={i}>{i}</li>)}</ul></div>; }
@@ -210,4 +215,17 @@ function buildPromotedRuns(commandCenterData: NormalizedSalesData) {
       status: "Promoted",
     },
   ];
+}
+
+function viewForRun(workflow: string): View {
+  if (workflow.includes("Agent Inbox")) return "agent-inbox";
+  if (workflow.includes("Prospecting")) return "prospecting";
+  if (workflow.includes("Strategy")) return "prospects";
+  if (workflow.includes("Deal")) return "deals";
+  if (workflow.includes("Intent")) return "intent";
+  return "home";
+}
+
+function pathForRun(workflow: string) {
+  return routeByView[viewForRun(workflow)];
 }

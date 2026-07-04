@@ -488,8 +488,24 @@ pre {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.section-heading > div {
+  min-width: 0;
+}
+
+.section-heading h2,
+.section-heading p {
+  overflow-wrap: anywhere;
+}
+
+.section-heading .primary-button,
+.section-heading .secondary-button,
+.section-heading .text-button {
+  flex: 0 0 auto;
 }
 
 .section-heading svg {
@@ -1362,7 +1378,8 @@ select {
 .io-grid, .two-panel, .strategy-layout, .intent-layout, .precall-layout { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1rem; align-items: start; }
 .module-panel, .detail-drawer { padding: 1rem; }
 .table-list { display: grid; gap: .55rem; }
-.table-row { display: grid; grid-template-columns: 1.1fr .7fr 1.3fr 1.3fr .8fr auto; gap: .6rem; align-items: center; padding: .75rem; border: 1px solid rgba(255,255,255,.1); border-radius: var(--radius); background: rgba(255,255,255,.04); }
+.table-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .7fr) minmax(0, 1.3fr) minmax(0, 1.3fr) minmax(0, .8fr) auto; gap: .6rem; align-items: center; padding: .75rem; border: 1px solid rgba(255,255,255,.1); border-radius: var(--radius); background: rgba(255,255,255,.04); }
+.table-row > * { min-width: 0; }
 .table-row span, .table-row em { color: var(--muted); font-style: normal; }
 .source-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .75rem; } .source-grid.compact { grid-template-columns: repeat(2, minmax(0,1fr)); }
 .source-card, .evidence-box, .brief-section-card, .meddic-card { padding: .85rem; border: 1px solid rgba(255,255,255,.1); border-radius: var(--radius); background: rgba(255,255,255,.045); }
@@ -1409,6 +1426,7 @@ select {
 .intent-row { grid-template-columns: 1fr .6fr 1fr 1fr; align-items: center; } .message-box { padding: .85rem; border: 1px solid var(--border); border-radius: var(--radius); background: rgba(0,0,0,.2); }
 .export-card { display: grid; gap: .65rem; }
 .toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 10; padding: .8rem 1rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: #071017; color: var(--text); box-shadow: var(--shadow); }
+.inline-toast { position: static; justify-self: start; }
 @media (max-width: 1180px) { .workflow-card-grid, .board-grid, .pipeline, .source-grid, .evidence-columns { grid-template-columns: repeat(2, minmax(0,1fr)); } .table-row { grid-template-columns: 1fr 1fr; } .mission-hero { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .workflow-card-grid, .export-grid, .io-grid, .two-panel, .strategy-layout, .intent-layout, .precall-layout, .intake-grid, .board-grid, .pipeline, .source-grid, .source-grid.compact, .connector-vault-layout, .evidence-columns, .brief-output, .deal-grid, .meddic-grid, .prospect-row, .intent-row { grid-template-columns: 1fr; } .connector-key-row { grid-template-columns: 1fr; } .connector-key-row em { text-align: left; } }
 .agent-inbox {

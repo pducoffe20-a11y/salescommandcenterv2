@@ -1,3 +1,4 @@
+export { AgentInbox } from "./AgentInbox/AgentInbox";
 import { Archive, CheckCircle2, Inbox, Trash2, Upload, XCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AgentArtifact, AgentArtifactKind, AgentArtifactStatus, JsonValue } from "../types";

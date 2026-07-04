@@ -1,3 +1,11 @@
+import { Archive, CheckCircle2, Inbox, Trash2, Upload, XCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type {
+  AgentArtifact,
+  AgentArtifactKind,
+  AgentArtifactStatus,
+  JsonValue,
+} from "../types";
 import { Archive, Inbox, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AgentArtifact, AgentArtifactKind, AgentArtifactStatus } from "../types";
@@ -7,7 +15,18 @@ import {
   saveArtifact,
   updateArtifactStatus,
 } from "../services/storage";
+import type { NormalizedSalesData } from "../services/agentImports";
+import {
+  promoteAgentArtifact,
+  savePromotedSalesData,
+} from "../services/agentImports";
 
+interface AgentInboxProps {
+  promotedData: NormalizedSalesData;
+  onPromotedDataChange: (data: NormalizedSalesData) => void;
+}
+
+export function AgentInbox({ promotedData, onPromotedDataChange }: AgentInboxProps) {
 type ArtifactImportInput = Partial<AgentArtifact> & { body?: unknown; title?: unknown };
 type CleanArtifactInput = Parameters<typeof saveArtifact>[0];
 
@@ -53,8 +72,11 @@ export function AgentInbox() {
     };
   }, []);
 
-  async function markArchived(artifactId: string) {
-    const updatedArtifact = await updateArtifactStatus(artifactId, "Archived");
+  async function setArtifactStatus(
+    artifactId: string,
+    status: AgentArtifactStatus,
+  ) {
+    const updatedArtifact = await updateArtifactStatus(artifactId, status);
 
     if (!updatedArtifact) {
       return;
@@ -65,6 +87,14 @@ export function AgentInbox() {
         artifact.id === artifactId ? updatedArtifact : artifact,
       ),
     );
+  }
+
+  async function promoteArtifact(artifact: AgentArtifact) {
+    const nextData = promoteAgentArtifact(artifact, promotedData);
+    savePromotedSalesData(nextData);
+    onPromotedDataChange(nextData);
+    await setArtifactStatus(artifact.id, "Promoted");
+    setImportMessage(`Promoted “${artifact.title}” to command center.`);
   }
 
   async function removeArtifact(artifactId: string) {
@@ -153,8 +183,8 @@ export function AgentInbox() {
           <span className="eyebrow">Agent inbox</span>
           <h1 id="agent-inbox-heading">Generated work ready for review</h1>
           <p>
-            Agent artifacts are loaded through the storage service so this view can
-            move from local persistence to Microsoft 365 or backend storage later.
+            Import artifacts, review their lifecycle status, then explicitly promote
+            accepted work into the shared command center data used by the dashboards.
           </p>
         </div>
         <Inbox size={22} aria-hidden="true" />
@@ -164,6 +194,9 @@ export function AgentInbox() {
         <div>
           <h2 id="agent-import-heading">Clean import</h2>
           <p>
+            Paste one artifact or an array of artifacts. Add a payload with accounts,
+            contacts, meetings, triggers, actionItems, and emailDrafts to promote
+            directly through the shared normalizers.
             Paste or upload one artifact or an array of artifacts. Review the preview,
             then import valid rows while invalid rows stay visible for correction.
           </p>
@@ -264,13 +297,31 @@ export function AgentInbox() {
             </dl>
             <div className="card-actions">
               <button
+                className="primary-button"
+                type="button"
+                onClick={() => promoteArtifact(artifact)}
+                disabled={artifact.status === "Promoted" || artifact.status === "Rejected"}
+              >
+                <CheckCircle2 size={16} aria-hidden="true" />
+                Promote to command center
+              </button>
+              <button
                 className="text-button"
                 type="button"
-                onClick={() => markArchived(artifact.id)}
-                disabled={artifact.status === "Archived"}
+                onClick={() => setArtifactStatus(artifact.id, "Archived")}
+                disabled={artifact.status === "Archived" || artifact.status === "Promoted"}
               >
                 <Archive size={16} aria-hidden="true" />
                 Archive
+              </button>
+              <button
+                className="text-button danger-button"
+                type="button"
+                onClick={() => setArtifactStatus(artifact.id, "Rejected")}
+                disabled={artifact.status === "Rejected" || artifact.status === "Promoted"}
+              >
+                <XCircle size={16} aria-hidden="true" />
+                Reject
               </button>
               <button
                 className="text-button danger-button"
@@ -296,22 +347,65 @@ const validKinds: AgentArtifactKind[] = [
   "Research note",
 ];
 
-const validStatuses: AgentArtifactStatus[] = ["Draft", "Ready", "Shared", "Archived"];
+const validStatuses: AgentArtifactStatus[] = ["Imported", "Promoted", "Archived", "Rejected"];
 
 const sampleArtifactImport = JSON.stringify(
   [
     {
       kind: "Research note",
-      status: "Ready",
+      status: "Imported",
       title: "Imported enrollment signal",
       body: "New agent note: validate the enrollment initiative before outreach.",
       source: "Clean JSON import",
+      payload: {
+        accounts: [
+          {
+            accountId: "brightpath",
+            accountName: "Brightpath Learning Council",
+            stage: "Imported signal",
+            fitScore: 84,
+            timingScore: 78,
+            snapshot: "Imported enrollment initiative signal.",
+            recommendedAction: "Validate whether enrollment reporting is a current priority.",
+            triggers: [
+              {
+                title: "Enrollment initiative signal",
+                source: "Agent import",
+                whyItMatters: "Could indicate near-term learner experience work.",
+                nextAction: "Ask who owns enrollment reporting and learner engagement.",
+              },
+            ],
+            actionItems: [
+              {
+                accountId: "brightpath",
+                title: "Validate enrollment reporting priority",
+                priority: "High",
+                status: "This Week",
+              },
+            ],
+            emailDrafts: [
+              {
+                accountId: "brightpath",
+                subject: "Enrollment reporting question",
+                body: "Hi — I saw a note that enrollment reporting may be getting attention. Is improving learner visibility a current priority, or should I not read too much into that?",
+              },
+            ],
+          },
+        ],
+      },
     },
   ],
   null,
   2,
 );
 
+type ArtifactImportInput = Partial<AgentArtifact> & {
+  body?: unknown;
+  title?: unknown;
+  payload?: unknown;
+};
+
+function parseArtifactImport(rawImport: string) {
 function parseArtifactImport(rawImport: string): ImportPreviewRow[] {
   let parsedImport: unknown;
 
@@ -351,6 +445,7 @@ function cleanArtifactInput(input: unknown, index: number): ImportPreviewRow {
     : "Research note";
   const status = validStatuses.includes(artifact.status as AgentArtifactStatus)
     ? (artifact.status as AgentArtifactStatus)
+    : "Imported";
     : "Draft";
   const title = typeof artifact.title === "string" && artifact.title.trim() ? artifact.title.trim() : "—";
   const source = cleanOptionalText(artifact.source) ?? "—";
@@ -374,6 +469,12 @@ function cleanArtifactInput(input: unknown, index: number): ImportPreviewRow {
     kind,
     status,
     title,
+    body,
+    accountId: cleanOptionalText(artifact.accountId),
+    contactId: cleanOptionalText(artifact.contactId),
+    source: cleanOptionalText(artifact.source),
+    metadata: isJsonObject(artifact.metadata) ? artifact.metadata : undefined,
+    payload: isJsonValue(artifact.payload) ? artifact.payload : undefined,
     source,
     validationStatus: "Valid",
     errorMessage: "",
@@ -426,6 +527,7 @@ function cleanOptionalText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function mergeArtifacts(newArtifacts: AgentArtifact[], existingArtifacts: AgentArtifact[]) {
 function getMetadataError(metadata: unknown) {
   if (metadata === undefined) {
     return "";
@@ -448,8 +550,20 @@ function isAllowedMetadataValue(value: unknown) {
 
 function mergeArtifacts(importedArtifacts: AgentArtifact[], currentArtifacts: AgentArtifact[]) {
   return Array.from(
-    new Map(
-      [...importedArtifacts, ...currentArtifacts].map((artifact) => [artifact.id, artifact]),
-    ).values(),
+    new Map([...newArtifacts, ...existingArtifacts].map((artifact) => [artifact.id, artifact])).values(),
   );
+}
+
+function isJsonObject(value: unknown): value is Record<string, JsonValue> {
+  return !!value && typeof value === "object" && !Array.isArray(value) && isJsonValue(value);
+}
+
+function isJsonValue(value: unknown): value is JsonValue {
+  if (value === null) return true;
+  if (["string", "number", "boolean"].includes(typeof value)) return true;
+  if (Array.isArray(value)) return value.every(isJsonValue);
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).every(isJsonValue);
+  }
+  return false;
 }

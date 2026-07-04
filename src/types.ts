@@ -253,10 +253,10 @@ export type AgentArtifactKind =
   | "Research note";
 
 export type AgentArtifactStatus =
-  | "Draft"
-  | "Ready"
-  | "Shared"
-  | "Archived";
+  | "Imported"
+  | "Promoted"
+  | "Archived"
+  | "Rejected";
 
 export interface AgentArtifact {
   id: string;
@@ -269,5 +269,6 @@ export interface AgentArtifact {
   createdAt: string;
   updatedAt: string;
   source?: string;
-  metadata?: Record<string, string | number | boolean | null>;
+  metadata?: Record<string, JsonValue>;
+  payload?: JsonValue;
 }

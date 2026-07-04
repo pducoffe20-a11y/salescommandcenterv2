@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
-import { Activity, ArrowRight, BriefcaseBusiness, CheckCircle2, ClipboardCopy, Database, Download, FileJson, FileText, Gauge, RadioTower, Search, Settings, Sparkles, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Activity, ArrowRight, BriefcaseBusiness, CheckCircle2, ClipboardCopy, Database, Download, Eye, EyeOff, FileJson, FileText, Gauge, KeyRound, RadioTower, Save, Search, Settings, Sparkles, Trash2, Users } from "lucide-react";
 import { seedSalesData, type NormalizedSalesData } from "../../services/agentImports";
+import { deleteConnectorKey, loadConnectorKeys, maskConnectorKey, saveConnectorKey } from "../../services/connectorKeys";
 import { dealReviews, intentAccounts, pipelineStages, runHistory, sourceConnections, strategyRecords, territoryAccounts, workflows, type WorkflowId, type TerritoryAccount, type StrategyRecord, type IntentAccount } from "../../workflowData";
 import type { View } from "../../router/appRouter";
 
@@ -75,7 +76,82 @@ export function IntentView({ selected, onSelect, copy, commandCenterData }: { se
 }
 
 export function ExportsView({ copy }: { copy: (text: string, label?: string) => void }) { const exports = ["JSON payloads", "CSV worklists", "Markdown briefs", "TXT summaries", "Self-contained HTML dashboards"]; return <div className="workflow-page"><PageHeader eyebrow="Export center" title="Download and copy mock artifacts" body="Export actions are simulated for v1, with clean seams for future generated files and standalone HTML dashboards."/><section className="export-grid">{exports.map((e) => <article className="panel module-panel export-card" key={e}><FileJson size={22}/><h2>{e}</h2><p>Mock export package. Future backend can replace this with real file generation.</p><button className="text-button" onClick={() => copy(`${e} mock export`, `${e} copied`)}><Download size={16}/> Export</button></article>)}</section></div>; }
-export function SettingsView() { return <div className="workflow-page"><PageHeader eyebrow="Settings" title="Source and integration readiness" body="No live retrieval is enabled. These cards define future connection points for Outlook, Zoom, Slack, SharePoint, web search, customer stories, workbook parsing, and Salesforce."/><SourcePanel /></div>; }
+export function SettingsView() { return <div className="workflow-page"><PageHeader eyebrow="Settings" title="Source and integration readiness" body="No live retrieval is enabled. These cards define future connection points for Outlook, Zoom, Slack, SharePoint, web search, customer stories, workbook parsing, and Salesforce."/><ConnectorKeyVault /><SourcePanel /></div>; }
+
+function ConnectorKeyVault() {
+  const [connectorKeys, setConnectorKeys] = useState(() => loadConnectorKeys());
+  const [selectedConnector, setSelectedConnector] = useState(sourceConnections[0]?.name ?? "");
+  const [keyValue, setKeyValue] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const selectedRecord = connectorKeys[selectedConnector];
+  const savedCount = sourceConnections.filter((source) => connectorKeys[source.name]?.key).length;
+
+  useEffect(() => {
+    setKeyValue(selectedRecord?.key ?? "");
+    setShowKey(false);
+  }, [selectedConnector, selectedRecord?.key]);
+
+  function saveSelectedKey() {
+    const trimmedKey = keyValue.trim();
+
+    if (!trimmedKey) {
+      setStatusMessage("Paste a key before saving this connector.");
+      return;
+    }
+
+    setConnectorKeys(saveConnectorKey(selectedConnector, trimmedKey));
+    setStatusMessage(`${selectedConnector} key saved locally.`);
+  }
+
+  function clearSelectedKey() {
+    setConnectorKeys(deleteConnectorKey(selectedConnector));
+    setKeyValue("");
+    setStatusMessage(`${selectedConnector} key cleared.`);
+  }
+
+  return <section className="panel module-panel connector-vault" aria-labelledby="connector-vault-heading">
+    <div className="section-heading">
+      <div>
+        <span className="eyebrow">API keys</span>
+        <h2 id="connector-vault-heading">Add API keys here</h2>
+        <p>Keys stay in this browser for the prototype. Connector calls remain off until a backend handoff is added.</p>
+      </div>
+      <KeyRound size={22} />
+    </div>
+    <div className="connector-vault-layout">
+      <div className="connector-picker" aria-label="Connector key status">
+        {sourceConnections.map((source) => {
+          const record = connectorKeys[source.name];
+          return <button className={`connector-key-row ${selectedConnector === source.name ? "active" : ""}`} key={source.name} onClick={() => setSelectedConnector(source.name)}>
+            <span><strong>{source.name}</strong><small>{source.note}</small></span>
+            <em className={record ? "key-ready" : ""}>{record ? maskConnectorKey(record.key) : "No key"}</em>
+          </button>;
+        })}
+      </div>
+      <div className="connector-key-editor">
+        <div className="connector-editor-header">
+          <div>
+            <span className="eyebrow">Selected connector</span>
+            <h3>{selectedConnector}</h3>
+          </div>
+          <span className="status-chip">{savedCount} of {sourceConnections.length} saved</span>
+        </div>
+        <label>API key<input type={showKey ? "text" : "password"} value={keyValue} placeholder={`Paste ${selectedConnector} API key`} onChange={(event) => setKeyValue(event.target.value)} /></label>
+        <div className="connector-key-actions">
+          <button className="primary-button" type="button" onClick={saveSelectedKey}><Save size={16} />Save key</button>
+          <button className="text-button" type="button" onClick={() => setShowKey((current) => !current)} aria-pressed={showKey}>{showKey ? <EyeOff size={16} /> : <Eye size={16} />}{showKey ? "Hide" : "Reveal"}</button>
+          <button className="text-button danger-button" type="button" onClick={clearSelectedKey} disabled={!selectedRecord}><Trash2 size={16} />Clear</button>
+        </div>
+        <div className="connector-key-meta" role="status">
+          <span>{selectedRecord ? `Last saved ${new Date(selectedRecord.updatedAt).toLocaleString()}` : "No saved key for this connector yet."}</span>
+          {statusMessage && <strong>{statusMessage}</strong>}
+        </div>
+      </div>
+    </div>
+  </section>;
+}
+
 function PageHeader({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) { return <header className="tool-header"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{body}</p></header>; }
 function IntakeCard({ title, fields }: { title: string; fields: string[] }) { return <div><span className="eyebrow">Mock controls</span><h2>{title}</h2><div className="field-chips">{fields.map((f) => <span className="status-chip" key={f}>{f}</span>)}</div></div>; }
 function KpiStrip({ items }: { items: string[][] }) { return <div className="kpi-strip module-kpis">{items.map(([label, value]) => <div className="kpi-card" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>; }

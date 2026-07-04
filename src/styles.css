@@ -1369,6 +1369,25 @@ select {
 .source-card strong, .source-card span { display: block; }
 .source-state, .status-chip { display: inline-flex; align-items: center; gap: .35rem; width: fit-content; margin: .35rem 0; padding: .26rem .5rem; border-radius: 999px; border: 1px solid rgba(39,245,208,.22); color: var(--teal); background: rgba(39,245,208,.08); font-size: .78rem; font-weight: 800; }
 .state-not-connected { color: var(--muted); border-color: rgba(255,255,255,.14); background: rgba(255,255,255,.04); } .state-needs-setup { color: var(--amber); border-color: rgba(249,200,106,.28); background: rgba(249,200,106,.08); }
+.connector-vault { background: linear-gradient(135deg, rgba(39,245,208,.1), rgba(120,199,255,.04)), var(--panel); }
+.connector-vault-layout { display: grid; grid-template-columns: minmax(280px, .8fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.connector-picker { display: grid; gap: .55rem; }
+.connector-key-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; align-items: center; padding: .75rem; border: 1px solid rgba(255,255,255,.1); border-radius: var(--radius); color: var(--text); background: rgba(255,255,255,.045); text-align: left; transition: border-color 180ms ease, background 180ms ease, transform 180ms ease; }
+.connector-key-row:hover, .connector-key-row.active { border-color: var(--border-strong); background: rgba(39,245,208,.075); transform: translateY(-1px); }
+.connector-key-row span, .connector-key-row strong, .connector-key-row small { min-width: 0; }
+.connector-key-row small { display: block; margin-top: .16rem; color: var(--muted); font-size: .82rem; line-height: 1.35; }
+.connector-key-row em { min-width: 72px; color: var(--muted); font-style: normal; font-size: .78rem; font-weight: 800; text-align: right; }
+.connector-key-row em.key-ready { color: var(--teal); }
+.connector-key-editor { min-width: 0; display: grid; gap: .9rem; padding: 1rem; border: 1px solid rgba(166,239,255,.14); border-radius: var(--radius); background: rgba(0,0,0,.18); }
+.connector-editor-header { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-start; justify-content: space-between; }
+.connector-editor-header h3 { margin-bottom: 0; }
+.connector-key-editor label { font-size: .9rem; }
+.connector-key-editor input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0; }
+.connector-key-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.connector-key-actions .primary-button, .connector-key-actions .text-button { min-height: 40px; }
+.connector-key-meta { display: grid; gap: .35rem; padding-top: .15rem; }
+.connector-key-meta span { color: var(--muted); font-size: .88rem; }
+.connector-key-meta strong { color: var(--teal); font-size: .9rem; }
 .intake-grid { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1fr); gap: 1rem; align-items: center; }
 .field-chips { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .7rem; }
 .module-kpis { grid-column: auto; }
@@ -1391,7 +1410,7 @@ select {
 .export-card { display: grid; gap: .65rem; }
 .toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 10; padding: .8rem 1rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: #071017; color: var(--text); box-shadow: var(--shadow); }
 @media (max-width: 1180px) { .workflow-card-grid, .board-grid, .pipeline, .source-grid, .evidence-columns { grid-template-columns: repeat(2, minmax(0,1fr)); } .table-row { grid-template-columns: 1fr 1fr; } .mission-hero { grid-template-columns: 1fr; } }
-@media (max-width: 760px) { .workflow-card-grid, .export-grid, .io-grid, .two-panel, .strategy-layout, .intent-layout, .precall-layout, .intake-grid, .board-grid, .pipeline, .source-grid, .source-grid.compact, .evidence-columns, .brief-output, .deal-grid, .meddic-grid, .prospect-row, .intent-row { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .workflow-card-grid, .export-grid, .io-grid, .two-panel, .strategy-layout, .intent-layout, .precall-layout, .intake-grid, .board-grid, .pipeline, .source-grid, .source-grid.compact, .connector-vault-layout, .evidence-columns, .brief-output, .deal-grid, .meddic-grid, .prospect-row, .intent-row { grid-template-columns: 1fr; } .connector-key-row { grid-template-columns: 1fr; } .connector-key-row em { text-align: left; } }
 .agent-inbox {
   padding: clamp(1rem, 2vw, 1.4rem);
 }

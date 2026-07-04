@@ -1,33 +1,16 @@
 import { Archive, CheckCircle2, Inbox, Trash2, Upload, XCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import type {
-  AgentArtifact,
-  AgentArtifactKind,
-  AgentArtifactStatus,
-  JsonValue,
-} from "../types";
-import { Archive, Inbox, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { AgentArtifact, AgentArtifactKind, AgentArtifactStatus } from "../types";
-import {
-  deleteArtifact,
-  loadArtifacts,
-  saveArtifact,
-  updateArtifactStatus,
-} from "../services/storage";
+import type { AgentArtifact, AgentArtifactKind, AgentArtifactStatus, JsonValue } from "../types";
+import { deleteArtifact, loadArtifacts, saveArtifact, updateArtifactStatus } from "../services/storage";
 import type { NormalizedSalesData } from "../services/agentImports";
-import {
-  promoteAgentArtifact,
-  savePromotedSalesData,
-} from "../services/agentImports";
+import { promoteAgentArtifact, savePromotedSalesData } from "../services/agentImports";
 
 interface AgentInboxProps {
   promotedData: NormalizedSalesData;
   onPromotedDataChange: (data: NormalizedSalesData) => void;
 }
 
-export function AgentInbox({ promotedData, onPromotedDataChange }: AgentInboxProps) {
-type ArtifactImportInput = Partial<AgentArtifact> & { body?: unknown; title?: unknown };
+type ArtifactImportInput = Partial<AgentArtifact> & { body?: unknown; title?: unknown; payload?: unknown };
 type CleanArtifactInput = Parameters<typeof saveArtifact>[0];
 
 type ImportPreviewRow = {
@@ -42,7 +25,7 @@ type ImportPreviewRow = {
   artifact?: CleanArtifactInput;
 };
 
-export function AgentInbox() {
+export function AgentInbox({ promotedData, onPromotedDataChange }: AgentInboxProps) {
   const [artifacts, setArtifacts] = useState<AgentArtifact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [importText, setImportText] = useState(sampleArtifactImport);
@@ -399,13 +382,6 @@ const sampleArtifactImport = JSON.stringify(
   2,
 );
 
-type ArtifactImportInput = Partial<AgentArtifact> & {
-  body?: unknown;
-  title?: unknown;
-  payload?: unknown;
-};
-
-function parseArtifactImport(rawImport: string) {
 function parseArtifactImport(rawImport: string): ImportPreviewRow[] {
   let parsedImport: unknown;
 
@@ -446,8 +422,8 @@ function cleanArtifactInput(input: unknown, index: number): ImportPreviewRow {
   const status = validStatuses.includes(artifact.status as AgentArtifactStatus)
     ? (artifact.status as AgentArtifactStatus)
     : "Imported";
-    : "Draft";
   const title = typeof artifact.title === "string" && artifact.title.trim() ? artifact.title.trim() : "—";
+  const body = cleanRequiredText(artifact.body);
   const source = cleanOptionalText(artifact.source) ?? "—";
 
   if (errors.length > 0) {
@@ -469,12 +445,6 @@ function cleanArtifactInput(input: unknown, index: number): ImportPreviewRow {
     kind,
     status,
     title,
-    body,
-    accountId: cleanOptionalText(artifact.accountId),
-    contactId: cleanOptionalText(artifact.contactId),
-    source: cleanOptionalText(artifact.source),
-    metadata: isJsonObject(artifact.metadata) ? artifact.metadata : undefined,
-    payload: isJsonValue(artifact.payload) ? artifact.payload : undefined,
     source,
     validationStatus: "Valid",
     errorMessage: "",
@@ -487,7 +457,8 @@ function cleanArtifactInput(input: unknown, index: number): ImportPreviewRow {
       accountId: cleanOptionalText(artifact.accountId),
       contactId: cleanOptionalText(artifact.contactId),
       source: cleanOptionalText(artifact.source),
-      metadata: artifact.metadata as AgentArtifact["metadata"],
+      metadata: isJsonObject(artifact.metadata) ? artifact.metadata : undefined,
+      payload: isJsonValue(artifact.payload) ? artifact.payload : undefined,
     },
   };
 }
@@ -527,7 +498,6 @@ function cleanOptionalText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-function mergeArtifacts(newArtifacts: AgentArtifact[], existingArtifacts: AgentArtifact[]) {
 function getMetadataError(metadata: unknown) {
   if (metadata === undefined) {
     return "";
@@ -550,7 +520,7 @@ function isAllowedMetadataValue(value: unknown) {
 
 function mergeArtifacts(importedArtifacts: AgentArtifact[], currentArtifacts: AgentArtifact[]) {
   return Array.from(
-    new Map([...newArtifacts, ...existingArtifacts].map((artifact) => [artifact.id, artifact])).values(),
+    new Map([...importedArtifacts, ...currentArtifacts].map((artifact) => [artifact.id, artifact])).values(),
   );
 }
 

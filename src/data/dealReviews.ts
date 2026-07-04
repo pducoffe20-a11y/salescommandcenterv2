@@ -1,4 +1,4 @@
-import type { DealReview } from "../workflowData";
+import type { DealReview } from "../types/workflow";
 
 export const dealReviews: DealReview[] = [
   {

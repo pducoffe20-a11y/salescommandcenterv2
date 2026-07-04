@@ -1,4 +1,4 @@
-import type { StrategyRecord } from "../workflowData";
+import type { StrategyRecord } from "../types/workflow";
 
 export const strategyRecords: StrategyRecord[] = [
   {

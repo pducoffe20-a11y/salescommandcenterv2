@@ -47,10 +47,6 @@ export function App() {
   const { view, params } = routeState;
   const [toast, setToast] = useState("");
   const toastTimeout = useRef<number | undefined>(undefined);
-  const [selectedAccount, setSelectedAccount] = useState(territoryAccounts[0]);
-  const [selectedProspect, setSelectedProspect] = useState(strategyRecords[0]);
-  const [selectedIntent, setSelectedIntent] = useState(intentAccounts[0]);
-  const [dealIndex, setDealIndex] = useState(0);
   const [commandCenterData, setCommandCenterData] = useState<NormalizedSalesData>(() => loadPromotedSalesData());
   const [selectedAccount, setSelectedAccount] = useState(() => territoryAccounts.find((account) => account.account_id === getRouteState().params.get("account")) ?? territoryAccounts[0]);
   const [selectedProspect, setSelectedProspect] = useState(() => strategyRecords.find((prospect) => prospect.prospect_id === getRouteState().params.get("prospect")) ?? strategyRecords[0]);
@@ -147,20 +143,13 @@ export function App() {
       <div className="sidebar-card"><span className="eyebrow">Evidence rule</span><strong>Facts stay separate from inference.</strong><p>Mock data only. All drafts require human review before use.</p></div>
     </aside>
     <main className="main-stage">
-      {view === "home" && <HomeView onLaunch={(id) => setView(id)} commandCenterData={commandCenterData} />}
-      {view === "prospecting" && <ProspectingView selected={selectedAccount} onSelect={setSelectedAccount} copy={copy} commandCenterData={commandCenterData} />}
-      {view === "prospects" && <StrategyView selected={selectedProspect} onSelect={setSelectedProspect} copy={copy} />}
-      {view === "precall" && <PreCallView copy={copy} />}
-      {view === "deals" && <DealsView dealIndex={dealIndex} setDealIndex={setDealIndex} copy={copy} commandCenterData={commandCenterData} />}
-      {view === "intent" && <IntentView selected={selectedIntent} onSelect={setSelectedIntent} copy={copy} commandCenterData={commandCenterData} />}
-      {view === "agent-inbox" && <AgentInbox promotedData={commandCenterData} onPromotedDataChange={setCommandCenterData} />}
-      {view === "home" && <HomeView onLaunch={launchView} />}
-      {view === "prospecting" && <ProspectingView selected={selectedAccount} onSelect={selectAccount} copy={copy} />}
+      {view === "home" && <HomeView onLaunch={launchView} commandCenterData={commandCenterData} />}
+      {view === "prospecting" && <ProspectingView selected={selectedAccount} onSelect={selectAccount} copy={copy} commandCenterData={commandCenterData} />}
       {view === "prospects" && <StrategyView selected={selectedProspect} onSelect={selectProspect} copy={copy} />}
       {view === "precall" && <PreCallView copy={copy} />}
-      {view === "deals" && <DealsView dealIndex={dealIndex} setDealIndex={selectDeal} copy={copy} />}
-      {view === "intent" && <IntentView selected={selectedIntent} onSelect={selectIntent} copy={copy} />}
-      {view === "agent-inbox" && <AgentInbox />}
+      {view === "deals" && <DealsView dealIndex={dealIndex} setDealIndex={selectDeal} copy={copy} commandCenterData={commandCenterData} />}
+      {view === "intent" && <IntentView selected={selectedIntent} onSelect={selectIntent} copy={copy} commandCenterData={commandCenterData} />}
+      {view === "agent-inbox" && <AgentInbox promotedData={commandCenterData} onPromotedDataChange={setCommandCenterData} />}
       {view === "exports" && <ExportsView copy={copy} />}
       {view === "settings" && <SettingsView />}
     </main>
@@ -168,8 +157,7 @@ export function App() {
   </div>;
 }
 
-function HomeView({ onLaunch, commandCenterData }: { onLaunch: (id: WorkflowId) => void; commandCenterData: NormalizedSalesData }) {
-function HomeView({ onLaunch }: { onLaunch: (id: View) => void }) {
+function HomeView({ onLaunch, commandCenterData }: { onLaunch: (id: View) => void; commandCenterData: NormalizedSalesData }) {
   return <div className="workflow-page">
     <section className="mission-hero"><div><span className="eyebrow">D2L Brightspace agentic workflow home</span><h1>Mission control for outbound judgment.</h1><p>Organize Pat's ChatGPT-built seller agents into one evidence-aware command center for prioritization, strategy, meeting prep, deal review, and timely follow-up.</p><div className="hero-actions"><button className="primary-button" onClick={() => onLaunch("prospecting")}><Sparkles size={18}/> Start prospecting run</button><button className="secondary-button" onClick={() => onLaunch("settings")}>Review source readiness</button></div></div><EvidenceRail /></section>
     <section className="workflow-card-grid">{workflows.map((w) => <article className={`workflow-card accent-${w.accent}`} key={w.id}><div className="card-topline"><span>{w.status}</span><Activity size={18}/></div><h2>{w.name}</h2><p>{w.purpose}</p><div className="io-grid"><MiniList title="Inputs" items={w.inputs}/><MiniList title="Outputs" items={w.outputs}/></div><button className="text-button" onClick={() => onLaunch(w.id)}>Launch workflow <ArrowRight size={16}/></button></article>)}</section>

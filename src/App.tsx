@@ -1,10 +1,25 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, ArrowRight, BriefcaseBusiness, CheckCircle2, ClipboardCopy, Database, Download, FileJson, FileText, Gauge, Home, Inbox, RadioTower, Search, Settings, Sparkles, Users } from "lucide-react";
 import { AgentInbox } from "./components/AgentInbox";
 import { loadPromotedSalesData, seedSalesData, type NormalizedSalesData } from "./services/agentImports";
 import { dealReviews, intentAccounts, pipelineStages, runHistory, sourceConnections, strategyRecords, territoryAccounts, workflows, type WorkflowId, type TerritoryAccount, type StrategyRecord, type IntentAccount } from "./workflowData";
 
 type View = "home" | WorkflowId | "agent-inbox";
+
+const routeByView: Record<View, string> = {
+  home: "/",
+  settings: "/sources",
+  prospecting: "/prospecting",
+  prospects: "/strategy",
+  precall: "/pre-call",
+  deals: "/deals",
+  intent: "/intent",
+  "agent-inbox": "/agent-inbox",
+  exports: "/exports",
+};
+
+const viewByRoute = Object.fromEntries(Object.entries(routeByView).map(([view, route]) => [route, view])) as Record<string, View>;
+
 const nav = [
   ["home", "Home", Home],
   ["settings", "Sources", Settings],
@@ -15,11 +30,21 @@ const nav = [
   ["intent", "Intent", RadioTower],
   ["agent-inbox", "Agent Inbox", Inbox],
   ["exports", "Exports", Download],
-  ["home", "Home", Home], ["prospecting", "Prospecting", Search], ["prospects", "Strategy", Users], ["precall", "Pre-call", FileText], ["deals", "Deals", BriefcaseBusiness], ["intent", "Intent", RadioTower], ["agent-inbox", "Agent Inbox", Inbox], ["exports", "Exports", Download], ["settings", "Sources", Settings],
 ] as const;
 
+function getRouteState() {
+  const path = window.location.pathname.replace(/\/$/, "") || "/";
+  return { view: viewByRoute[path] ?? "home", params: new URLSearchParams(window.location.search) };
+}
+
+function buildUrl(view: View, params = new URLSearchParams()) {
+  const query = params.toString();
+  return `${routeByView[view]}${query ? `?${query}` : ""}`;
+}
+
 export function App() {
-  const [view, setView] = useState<View>("home");
+  const [routeState, setRouteState] = useState(getRouteState);
+  const { view, params } = routeState;
   const [toast, setToast] = useState("");
   const toastTimeout = useRef<number | undefined>(undefined);
   const [selectedAccount, setSelectedAccount] = useState(territoryAccounts[0]);
@@ -27,6 +52,38 @@ export function App() {
   const [selectedIntent, setSelectedIntent] = useState(intentAccounts[0]);
   const [dealIndex, setDealIndex] = useState(0);
   const [commandCenterData, setCommandCenterData] = useState<NormalizedSalesData>(() => loadPromotedSalesData());
+  const [selectedAccount, setSelectedAccount] = useState(() => territoryAccounts.find((account) => account.account_id === getRouteState().params.get("account")) ?? territoryAccounts[0]);
+  const [selectedProspect, setSelectedProspect] = useState(() => strategyRecords.find((prospect) => prospect.prospect_id === getRouteState().params.get("prospect")) ?? strategyRecords[0]);
+  const [selectedIntent, setSelectedIntent] = useState(() => intentAccounts.find((account) => account.name === getRouteState().params.get("intent")) ?? intentAccounts[0]);
+  const [dealIndex, setDealIndex] = useState(() => {
+    const index = Number(getRouteState().params.get("deal"));
+    return Number.isInteger(index) && dealReviews[index] ? index : 0;
+  });
+
+  useEffect(() => {
+    const syncRoute = () => setRouteState(getRouteState());
+    window.addEventListener("popstate", syncRoute);
+    return () => window.removeEventListener("popstate", syncRoute);
+  }, []);
+
+  useEffect(() => {
+    const account = territoryAccounts.find((item) => item.account_id === params.get("account"));
+    if (account) setSelectedAccount(account);
+
+    const prospect = strategyRecords.find((item) => item.prospect_id === params.get("prospect"));
+    if (prospect) setSelectedProspect(prospect);
+
+    const intentAccount = intentAccounts.find((item) => item.name === params.get("intent"));
+    if (intentAccount) setSelectedIntent(intentAccount);
+
+    const nextDealIndex = Number(params.get("deal"));
+    if (Number.isInteger(nextDealIndex) && dealReviews[nextDealIndex]) setDealIndex(nextDealIndex);
+  }, [params]);
+
+  const navigate = useCallback((nextView: View, nextParams = new URLSearchParams()) => {
+    window.history.pushState(null, "", buildUrl(nextView, nextParams));
+    setRouteState(getRouteState());
+  }, []);
 
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -39,14 +96,53 @@ export function App() {
     notify(label);
   }, [notify]);
 
+  const selectAccount = useCallback((account: TerritoryAccount) => {
+    setSelectedAccount(account);
+    const nextParams = new URLSearchParams(params);
+    nextParams.set("account", account.account_id);
+    navigate("prospecting", nextParams);
+  }, [navigate, params]);
+
+  const selectProspect = useCallback((prospect: StrategyRecord) => {
+    setSelectedProspect(prospect);
+    const nextParams = new URLSearchParams(params);
+    nextParams.set("prospect", prospect.prospect_id);
+    navigate("prospects", nextParams);
+  }, [navigate, params]);
+
+  const selectDeal = useCallback((index: number) => {
+    setDealIndex(index);
+    const nextParams = new URLSearchParams(params);
+    nextParams.set("deal", String(index));
+    navigate("deals", nextParams);
+  }, [navigate, params]);
+
+  const selectIntent = useCallback((account: IntentAccount) => {
+    setSelectedIntent(account);
+    const nextParams = new URLSearchParams(params);
+    nextParams.set("intent", account.name);
+    navigate("intent", nextParams);
+  }, [navigate, params]);
+
+  const paramsForView = useCallback((nextView: View) => {
+    const nextParams = new URLSearchParams();
+    if (nextView === "prospecting") nextParams.set("account", selectedAccount.account_id);
+    if (nextView === "prospects") nextParams.set("prospect", selectedProspect.prospect_id);
+    if (nextView === "deals") nextParams.set("deal", String(dealIndex));
+    if (nextView === "intent") nextParams.set("intent", selectedIntent.name);
+    return nextParams;
+  }, [dealIndex, selectedAccount.account_id, selectedIntent.name, selectedProspect.prospect_id]);
+
+  const launchView = useCallback((nextView: View) => navigate(nextView, paramsForView(nextView)), [navigate, paramsForView]);
+
   return <div className="app-shell workflow-shell">
     <div className="texture-grid" aria-hidden="true" />
     <aside className="sidebar">
-      <button className="brand brand-button" onClick={() => setView("home")}>
+      <button className="brand brand-button" onClick={() => launchView("home")}>
         <span className="brand-mark">OW</span><span><strong>Outbound Workflow</strong><small>Command Center</small></span>
       </button>
       <nav className="nav-stack" aria-label="Workflow navigation">
-        {nav.map(([id, label, Icon]) => <button key={id} className={`nav-item ${view === id ? "active" : ""}`} onClick={() => setView(id as View)}><Icon size={18}/><span>{label}</span></button>)}
+        {nav.map(([id, label, Icon]) => <button key={id} className={`nav-item ${view === id ? "active" : ""}`} onClick={() => launchView(id as View)}><Icon size={18}/><span>{label}</span></button>)}
       </nav>
       <div className="sidebar-card"><span className="eyebrow">Evidence rule</span><strong>Facts stay separate from inference.</strong><p>Mock data only. All drafts require human review before use.</p></div>
     </aside>
@@ -58,6 +154,13 @@ export function App() {
       {view === "deals" && <DealsView dealIndex={dealIndex} setDealIndex={setDealIndex} copy={copy} commandCenterData={commandCenterData} />}
       {view === "intent" && <IntentView selected={selectedIntent} onSelect={setSelectedIntent} copy={copy} commandCenterData={commandCenterData} />}
       {view === "agent-inbox" && <AgentInbox promotedData={commandCenterData} onPromotedDataChange={setCommandCenterData} />}
+      {view === "home" && <HomeView onLaunch={launchView} />}
+      {view === "prospecting" && <ProspectingView selected={selectedAccount} onSelect={selectAccount} copy={copy} />}
+      {view === "prospects" && <StrategyView selected={selectedProspect} onSelect={selectProspect} copy={copy} />}
+      {view === "precall" && <PreCallView copy={copy} />}
+      {view === "deals" && <DealsView dealIndex={dealIndex} setDealIndex={selectDeal} copy={copy} />}
+      {view === "intent" && <IntentView selected={selectedIntent} onSelect={selectIntent} copy={copy} />}
+      {view === "agent-inbox" && <AgentInbox />}
       {view === "exports" && <ExportsView copy={copy} />}
       {view === "settings" && <SettingsView />}
     </main>
@@ -66,6 +169,7 @@ export function App() {
 }
 
 function HomeView({ onLaunch, commandCenterData }: { onLaunch: (id: WorkflowId) => void; commandCenterData: NormalizedSalesData }) {
+function HomeView({ onLaunch }: { onLaunch: (id: View) => void }) {
   return <div className="workflow-page">
     <section className="mission-hero"><div><span className="eyebrow">D2L Brightspace agentic workflow home</span><h1>Mission control for outbound judgment.</h1><p>Organize Pat's ChatGPT-built seller agents into one evidence-aware command center for prioritization, strategy, meeting prep, deal review, and timely follow-up.</p><div className="hero-actions"><button className="primary-button" onClick={() => onLaunch("prospecting")}><Sparkles size={18}/> Start prospecting run</button><button className="secondary-button" onClick={() => onLaunch("settings")}>Review source readiness</button></div></div><EvidenceRail /></section>
     <section className="workflow-card-grid">{workflows.map((w) => <article className={`workflow-card accent-${w.accent}`} key={w.id}><div className="card-topline"><span>{w.status}</span><Activity size={18}/></div><h2>{w.name}</h2><p>{w.purpose}</p><div className="io-grid"><MiniList title="Inputs" items={w.inputs}/><MiniList title="Outputs" items={w.outputs}/></div><button className="text-button" onClick={() => onLaunch(w.id)}>Launch workflow <ArrowRight size={16}/></button></article>)}</section>

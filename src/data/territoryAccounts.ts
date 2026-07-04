@@ -1,4 +1,4 @@
-import type { TerritoryAccount } from "../workflowData";
+import type { TerritoryAccount } from "../types/workflow";
 
 export const territoryAccounts: TerritoryAccount[] = [
   {

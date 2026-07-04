@@ -272,3 +272,4 @@ export interface AgentArtifact {
   metadata?: Record<string, JsonValue>;
   payload?: JsonValue;
 }
+export * from "./types/workflow";

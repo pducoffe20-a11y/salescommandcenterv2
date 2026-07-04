@@ -136,18 +136,25 @@ export function AgentInbox({ promotedData, onPromotedDataChange }: AgentInboxPro
   );
 
   return (
-    <section className="panel agent-inbox" aria-labelledby="agent-inbox-heading">
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">Agent inbox</span>
-          <h1 id="agent-inbox-heading">Generated work ready for review</h1>
-          <p>
-            Import artifacts, review their lifecycle status, then explicitly promote accepted work
-            into the shared command center data used by the dashboards.
-          </p>
+    <section className="agent-inbox workflow-page" aria-labelledby="agent-inbox-heading">
+      <header className="tool-header agent-inbox-header">
+        <div className="agent-inbox-title">
+          <div>
+            <span className="eyebrow">Agent inbox</span>
+            <h1 id="agent-inbox-heading">Generated work ready for review</h1>
+            <p>
+              Import artifacts, review lifecycle status, and promote accepted work into the shared
+              command center data used by the dashboards.
+            </p>
+          </div>
+          <Inbox size={24} aria-hidden="true" />
         </div>
-        <Inbox size={22} aria-hidden="true" />
-      </div>
+        <div className="agent-inbox-stats" aria-label="Agent inbox totals">
+          <span className="status-chip">{artifacts.length} saved</span>
+          <span className="status-chip">{importPreviewRows.length} in preview</span>
+          <span className="status-chip">{promotedData.accounts.length} accounts live</span>
+        </div>
+      </header>
 
       <InboxFilter
         importText={importText}
@@ -160,7 +167,7 @@ export function AgentInbox({ promotedData, onPromotedDataChange }: AgentInboxPro
         onClearImport={clearImport}
       />
 
-      {isLoading && <p>Loading saved artifacts…</p>}
+      {isLoading && <p>Loading saved artifacts...</p>}
 
       {!isLoading && artifacts.length === 0 && (
         <div className="empty-state">

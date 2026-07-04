@@ -1,4 +1,4 @@
-import type { IntentAccount } from "../workflowData";
+import type { IntentAccount } from "../types/workflow";
 
 export const intentAccounts: IntentAccount[] = [
   {

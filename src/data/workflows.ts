@@ -1,4 +1,4 @@
-import type { SourceConnection, WorkflowCardData } from "../workflowData";
+import type { SourceConnection, WorkflowCardData } from "../types/workflow";
 
 export const workflows: WorkflowCardData[] = [
   {

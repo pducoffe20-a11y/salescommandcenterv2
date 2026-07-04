@@ -1,90 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AgentInbox } from "./components/AgentInbox";
-import { DealsView, ExportsView, HomeView, IntentView, PreCallView, ProspectingView, SettingsView, StrategyView } from "./components/workflow/WorkflowViews";
-import { WorkflowStateProvider, useWorkflowState } from "./context/WorkflowStateContext";
-import { buildUrl, getRouteState, navItems, type View } from "./router/appRouter";
+import { useMemo, useState } from "react";
+import { Activity, ArrowRight, BriefcaseBusiness, CheckCircle2, ClipboardCopy, Database, Download, FileJson, FileText, Gauge, RadioTower, Search, Settings, Sparkles, Users } from "lucide-react";
+import { seedSalesData, type NormalizedSalesData } from "../../services/agentImports";
+import { dealReviews, intentAccounts, pipelineStages, runHistory, sourceConnections, strategyRecords, territoryAccounts, workflows, type WorkflowId, type TerritoryAccount, type StrategyRecord, type IntentAccount } from "../../workflowData";
+import type { View } from "../../router/appRouter";
 
-export function App() {
-  const [routeState, setRouteState] = useState(getRouteState);
-  const { view, params } = routeState;
-  const [toast, setToast] = useState("");
-  const toastTimeout = useRef<number | undefined>(undefined);
-  const [commandCenterData, setCommandCenterData] = useState<NormalizedSalesData>(() => loadPromotedSalesData());
-  const [selectedAccount, setSelectedAccount] = useState(() => territoryAccounts.find((account) => account.account_id === getRouteState().params.get("account")) ?? territoryAccounts[0]);
-  const [selectedProspect, setSelectedProspect] = useState(() => strategyRecords.find((prospect) => prospect.prospect_id === getRouteState().params.get("prospect")) ?? strategyRecords[0]);
-  const [selectedIntent, setSelectedIntent] = useState(() => intentAccounts.find((account) => account.name === getRouteState().params.get("intent")) ?? intentAccounts[0]);
-  const [dealIndex, setDealIndex] = useState(() => {
-    const index = Number(getRouteState().params.get("deal"));
-    return Number.isInteger(index) && dealReviews[index] ? index : 0;
-  });
-
-  const navigate = useCallback((nextView: View, nextParams = new URLSearchParams()) => {
-    window.history.pushState(null, "", buildUrl(nextView, nextParams));
-    setRouteState(getRouteState());
-  }, []);
-
-  useEffect(() => {
-    const syncRoute = () => setRouteState(getRouteState());
-    window.addEventListener("popstate", syncRoute);
-    return () => window.removeEventListener("popstate", syncRoute);
-  }, []);
-
-  return <WorkflowStateProvider navigate={navigate}>
-    <AppShell routeState={routeState} navigate={navigate} />
-  </WorkflowStateProvider>;
-}
-
-function AppShell({ routeState, navigate }: { routeState: ReturnType<typeof getRouteState>; navigate: (view: View, params?: URLSearchParams) => void }) {
-  const { view, params } = routeState;
-  const { syncSelectionsFromParams, paramsForView } = useWorkflowState();
-  const [toast, setToast] = useState("");
-  const toastTimeout = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    syncSelectionsFromParams(params);
-  }, [params, syncSelectionsFromParams]);
-
-  const launchView = useCallback((nextView: View) => navigate(nextView, paramsForView(nextView)), [navigate, paramsForView]);
-
-  const notify = useCallback((message: string) => {
-    setToast(message);
-    window.clearTimeout(toastTimeout.current);
-    toastTimeout.current = window.setTimeout(() => setToast(""), 1800);
-  }, []);
-
-  const copy = useCallback((text: string, label = "Copied") => {
-    void navigator.clipboard?.writeText(text);
-    notify(label);
-  }, [notify]);
-
-  return <div className="app-shell workflow-shell">
-    <div className="texture-grid" aria-hidden="true" />
-    <aside className="sidebar">
-      <button className="brand brand-button" onClick={() => launchView("home")}>
-        <span className="brand-mark">OW</span><span><strong>Outbound Workflow</strong><small>Command Center</small></span>
-      </button>
-      <nav className="nav-stack" aria-label="Workflow navigation">
-        {navItems.map(([id, label, Icon]) => <button key={id} className={`nav-item ${view === id ? "active" : ""}`} onClick={() => launchView(id)}><Icon size={18}/><span>{label}</span></button>)}
-      </nav>
-      <div className="sidebar-card"><span className="eyebrow">Evidence rule</span><strong>Facts stay separate from inference.</strong><p>Mock data only. All drafts require human review before use.</p></div>
-    </aside>
-    <main className="main-stage">
-      {view === "home" && <HomeView onLaunch={launchView} commandCenterData={commandCenterData} />}
-      {view === "prospecting" && <ProspectingView selected={selectedAccount} onSelect={selectAccount} copy={copy} commandCenterData={commandCenterData} />}
-      {view === "prospects" && <StrategyView selected={selectedProspect} onSelect={selectProspect} copy={copy} />}
-      {view === "precall" && <PreCallView copy={copy} />}
-      {view === "deals" && <DealsView dealIndex={dealIndex} setDealIndex={selectDeal} copy={copy} commandCenterData={commandCenterData} />}
-      {view === "intent" && <IntentView selected={selectedIntent} onSelect={selectIntent} copy={copy} commandCenterData={commandCenterData} />}
-      {view === "agent-inbox" && <AgentInbox promotedData={commandCenterData} onPromotedDataChange={setCommandCenterData} />}
-      {view === "exports" && <ExportsView copy={copy} />}
-      {view === "settings" && <SettingsView />}
-      <WorkflowRoute view={view} copy={copy} launchView={launchView} />
-    </main>
-    {toast && <div className="toast" role="status">{toast}</div>}
-  </div>;
-}
-
-function HomeView({ onLaunch, commandCenterData }: { onLaunch: (id: View) => void; commandCenterData: NormalizedSalesData }) {
+export function HomeView({ onLaunch, commandCenterData }: { onLaunch: (id: View) => void; commandCenterData: NormalizedSalesData }) {
   return <div className="workflow-page">
     <section className="mission-hero"><div><span className="eyebrow">D2L Brightspace agentic workflow home</span><h1>Mission control for outbound judgment.</h1><p>Organize Pat's ChatGPT-built seller agents into one evidence-aware command center for prioritization, strategy, meeting prep, deal review, and timely follow-up.</p><div className="hero-actions"><button className="primary-button" onClick={() => onLaunch("prospecting")}><Sparkles size={18}/> Start prospecting run</button><button className="secondary-button" onClick={() => onLaunch("settings")}>Review source readiness</button></div></div><EvidenceRail /></section>
     <section className="workflow-card-grid">{workflows.map((w) => <article className={`workflow-card accent-${w.accent}`} key={w.id}><div className="card-topline"><span>{w.status}</span><Activity size={18}/></div><h2>{w.name}</h2><p>{w.purpose}</p><div className="io-grid"><MiniList title="Inputs" items={w.inputs}/><MiniList title="Outputs" items={w.outputs}/></div><button className="text-button" onClick={() => onLaunch(w.id)}>Launch workflow <ArrowRight size={16}/></button></article>)}</section>
@@ -97,7 +17,7 @@ function MiniList({ title, items }: { title: string; items: string[] }) { return
 function RunHistory({ commandCenterData }: { commandCenterData?: NormalizedSalesData }) { const promotedRuns = commandCenterData ? buildPromotedRuns(commandCenterData) : []; return <section className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Run history</span><h2>Recent mock workflow runs</h2></div><Gauge size={20}/></div><div className="table-list">{[...promotedRuns, ...runHistory].map((r) => <div className="table-row" key={`${r.workflow}-${r.date}-${r.output}`}><strong>{r.workflow}</strong><span>{r.date}</span><span>{r.source}</span><span>{r.output}</span><em>{r.status}</em><button className="text-button">Reopen</button></div>)}</div></section>; }
 function SourcePanel({ compact = false }: { compact?: boolean }) { return <section className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Integration readiness</span><h2>Source placeholders</h2></div><Database size={20}/></div><div className={compact ? "source-grid compact" : "source-grid"}>{sourceConnections.map((s) => <div className="source-card" key={s.name}><strong>{s.name}</strong><span className={`source-state state-${s.state.replace(/ /g, "-")}`}>{s.state}</span><p>{s.note}</p></div>)}</div></section>; }
 
-function ProspectingView({ selected, onSelect, copy, commandCenterData }: { selected: TerritoryAccount; onSelect: (a: TerritoryAccount) => void; copy: (text: string, label?: string) => void; commandCenterData: NormalizedSalesData }) {
+export function ProspectingView({ selected, onSelect, copy, commandCenterData }: { selected: TerritoryAccount; onSelect: (a: TerritoryAccount) => void; copy: (text: string, label?: string) => void; commandCenterData: NormalizedSalesData }) {
   const groups = ["Work Now", "Validate", "Watch", "Deprioritize"] as const;
   return <div className="workflow-page"><PageHeader eyebrow="Module 1" title="Brightspace New-Logo Prospecting Hub" body="Rank net-new accounts by practical priority, show the evidence, and keep workbook assumptions from becoming fake truth." />
     <section className="panel module-panel intake-grid"><IntakeCard title="Territory intake" fields={["Upload workbook", "Upload account list", "Paste account names", "Territory segment", "Output type", "Depth: quick / deep / deeper"]}/><KpiStrip items={[ ["Work Now", "2"], ["Validate", "1"], ["Evidence avg", "62"], ["Weak fit suppressed", "1"] ]}/></section>
@@ -109,7 +29,7 @@ function ProspectingView({ selected, onSelect, copy, commandCenterData }: { sele
 function ScoreBars({ a }: { a: TerritoryAccount }) { return <div className="mini-bars"><span style={{width:`${a.icp_fit_score}%`}}>ICP</span><span style={{width:`${a.why_now_score}%`}}>Why-now</span><span style={{width:`${a.evidence_quality_score}%`}}>Evidence</span></div>; }
 function EvidenceColumns({ account }: { account: TerritoryAccount }) { const sections = [["Verified facts", account.verified_facts], ["Workbook inputs", account.workbook_inputs], ["Assumptions", account.assumptions], ["Unknowns", account.unknowns], ["Research gaps", account.research_gaps], ["Likely stakeholders", account.likely_stakeholders], ["Risks", account.risks], ["Disqualifiers", account.disqualifiers.length ? account.disqualifiers : ["None shown in mock data"]], ["Source notes", account.source_notes]]; return <div className="evidence-columns">{sections.map(([title, items]) => <div className="evidence-box" key={title as string}><h3>{title as string}</h3><ul>{(items as string[]).map((i) => <li key={i}>{i}</li>)}</ul></div>)}</div>; }
 
-function StrategyView({ selected, onSelect, copy }: { selected: StrategyRecord; onSelect: (p: StrategyRecord) => void; copy: (text: string, label?: string) => void }) {
+export function StrategyView({ selected, onSelect, copy }: { selected: StrategyRecord; onSelect: (p: StrategyRecord) => void; copy: (text: string, label?: string) => void }) {
   const payload = { generated_at: "2026-07-03T12:00:00Z", source_name: "Credentialing targets paste", workflow_stage: "review_handoff", records: strategyRecords };
   return <div className="workflow-page"><PageHeader eyebrow="Module 2" title="Prospect Strategy + Seller Execution Dashboard" body="Raw input becomes conservative strategy JSON; dashboard HTML remains the execution layer, not the source of truth." />
     <section className="panel module-panel"><div className="pipeline">{pipelineStages.map((s, i) => <div className={`pipeline-step ${s.status}`} key={s.name}><span>{i + 1}</span><strong>{s.name}</strong><small>{s.records} records · {s.warnings} warnings</small><em>{s.gaps}</em></div>)}</div></section>
@@ -121,7 +41,7 @@ function ScorePill({ score }: { score: number }) { return <span className="score
 function JsonPanel({ payload, copy }: { payload: unknown; copy: (text: string, label?: string) => void }) { const text = JSON.stringify(payload, null, 2); return <section className="panel module-panel json-panel"><div className="section-heading"><div><span className="eyebrow">JSON output center</span><h2>outreach_preparation_payloads.json</h2></div><button className="text-button" onClick={() => copy(text, "JSON copied")}><ClipboardCopy size={16}/> Copy</button></div><pre>{text}</pre></section>; }
 function MessagePreview({ record, copy }: { record: StrategyRecord; copy: (text: string, label?: string) => void }) { return <div className="evidence-box"><h3>Review-safe outreach payload</h3><strong>{record.outreach_payload.subject_line || "No draft for suppressed record"}</strong><p>{record.outreach_payload.email_body || record.outreach_payload.suppression_reason}</p><button className="text-button" onClick={() => copy(record.outreach_payload.email_body, "Draft copied")}>Copy draft</button></div>; }
 
-function PreCallView({ copy }: { copy: (text: string, label?: string) => void }) {
+export function PreCallView({ copy }: { copy: (text: string, label?: string) => void }) {
   const [meetingType, setMeetingType] = useState("Discovery");
   const sections = useMemo(() => [
     ["Account Snapshot", "Grounded: healthcare association and CE context are provided. Inference: the opportunity may involve reporting and member learner engagement. Open question: whether this is a platform priority now."],
@@ -139,7 +59,7 @@ function PreCallView({ copy }: { copy: (text: string, label?: string) => void })
 function Readiness() { return <div><div className="meter-track"><span style={{width:"72%"}} /></div><p>Prep completeness: 72%. Thin-context warning: budget, current platform, and decision process are unknown.</p></div>; }
 function Checklist({ type }: { type: string }) { const base = ["Confirm objective", "Name known facts", "Label assumptions", "Prepare soft next step"]; return <div className="check-panel"><h3>{type} checklist</h3>{base.map((b, i) => <label className="check-row" key={b}><input type="checkbox" defaultChecked={i < 2}/>{b}</label>)}</div>; }
 
-function DealsView({ dealIndex, setDealIndex, copy, commandCenterData }: { dealIndex: number; setDealIndex: (n: number) => void; copy: (text: string, label?: string) => void; commandCenterData: NormalizedSalesData }) {
+export function DealsView({ dealIndex, setDealIndex, copy, commandCenterData }: { dealIndex: number; setDealIndex: (n: number) => void; copy: (text: string, label?: string) => void; commandCenterData: NormalizedSalesData }) {
   const deal = dealReviews[dealIndex];
   return <div className="workflow-page deal-mode"><PageHeader eyebrow="Module 4" title="Deal Intelligence Studio" body="Dark-mode deal command center for momentum, MEDDIC gaps, stakeholder coverage, and the next buyer-facing move." />
     <section className="deal-selector">{dealReviews.map((d, i) => <button className={`secondary-button ${i === dealIndex ? "active" : ""}`} onClick={() => setDealIndex(i)} key={d.account}>{d.account}</button>)}</section>
@@ -147,15 +67,15 @@ function DealsView({ dealIndex, setDealIndex, copy, commandCenterData }: { dealI
   </div>;
 }
 
-function IntentView({ selected, onSelect, copy, commandCenterData }: { selected: IntentAccount; onSelect: (a: IntentAccount) => void; copy: (text: string, label?: string) => void; commandCenterData: NormalizedSalesData }) {
+export function IntentView({ selected, onSelect, copy, commandCenterData }: { selected: IntentAccount; onSelect: (a: IntentAccount) => void; copy: (text: string, label?: string) => void; commandCenterData: NormalizedSalesData }) {
   return <div className="workflow-page"><PageHeader eyebrow="Module 5" title="Intent Alert Follow-Up Studio" body="Mock Outlook alert emails become account summaries and short Pat-style drafts. Outreach never mentions 6sense, tracking, or monitoring." />
     <section className="panel module-panel intake-grid"><IntakeCard title="Run setup" fields={["Lookback: last 7 days", "Sender: abm-alerts@6sense.com", "Story matching: on", "Output: Markdown + JSON"]}/><KpiStrip items={[["Emails found", "3"], ["Accounts", "3"], ["Repeated", "2"], ["Drafts", "3"]]}/></section>
     <section className="intent-layout"><div className="panel module-panel"><h2>Account coverage</h2>{intentAccounts.map((a) => <button className="intent-row" key={a.name} onClick={() => onSelect(a)}><strong>{a.name}</strong><span>{a.evidenceStrength}</span><span>{a.repeatedActivity}</span><span>{a.storyMatch ?? "No forced story"}</span></button>)}</div><div className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Account detail drawer</span><h2>{selected.name}</h2></div><button className="text-button" onClick={() => copy(selected.draft, "Draft copied")}>Copy draft</button></div><Detail title="Raw alert evidence" items={selected.rawEvidence}/><h3>Plain-language sales takeaway</h3><p>{selected.summary}</p><h3>Outreach draft</h3><p className="message-box">{selected.draft}</p></div></section><PromotedIntentPanel commandCenterData={commandCenterData} />
   </div>;
 }
 
-function ExportsView({ copy }: { copy: (text: string, label?: string) => void }) { const exports = ["JSON payloads", "CSV worklists", "Markdown briefs", "TXT summaries", "Self-contained HTML dashboards"]; return <div className="workflow-page"><PageHeader eyebrow="Export center" title="Download and copy mock artifacts" body="Export actions are simulated for v1, with clean seams for future generated files and standalone HTML dashboards."/><section className="export-grid">{exports.map((e) => <article className="panel module-panel export-card" key={e}><FileJson size={22}/><h2>{e}</h2><p>Mock export package. Future backend can replace this with real file generation.</p><button className="text-button" onClick={() => copy(`${e} mock export`, `${e} copied`)}><Download size={16}/> Export</button></article>)}</section></div>; }
-function SettingsView() { return <div className="workflow-page"><PageHeader eyebrow="Settings" title="Source and integration readiness" body="No live retrieval is enabled. These cards define future connection points for Outlook, Zoom, Slack, SharePoint, web search, customer stories, workbook parsing, and Salesforce."/><SourcePanel /></div>; }
+export function ExportsView({ copy }: { copy: (text: string, label?: string) => void }) { const exports = ["JSON payloads", "CSV worklists", "Markdown briefs", "TXT summaries", "Self-contained HTML dashboards"]; return <div className="workflow-page"><PageHeader eyebrow="Export center" title="Download and copy mock artifacts" body="Export actions are simulated for v1, with clean seams for future generated files and standalone HTML dashboards."/><section className="export-grid">{exports.map((e) => <article className="panel module-panel export-card" key={e}><FileJson size={22}/><h2>{e}</h2><p>Mock export package. Future backend can replace this with real file generation.</p><button className="text-button" onClick={() => copy(`${e} mock export`, `${e} copied`)}><Download size={16}/> Export</button></article>)}</section></div>; }
+export function SettingsView() { return <div className="workflow-page"><PageHeader eyebrow="Settings" title="Source and integration readiness" body="No live retrieval is enabled. These cards define future connection points for Outlook, Zoom, Slack, SharePoint, web search, customer stories, workbook parsing, and Salesforce."/><SourcePanel /></div>; }
 function PageHeader({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) { return <header className="tool-header"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{body}</p></header>; }
 function IntakeCard({ title, fields }: { title: string; fields: string[] }) { return <div><span className="eyebrow">Mock controls</span><h2>{title}</h2><div className="field-chips">{fields.map((f) => <span className="status-chip" key={f}>{f}</span>)}</div></div>; }
 function KpiStrip({ items }: { items: string[][] }) { return <div className="kpi-strip module-kpis">{items.map(([label, value]) => <div className="kpi-card" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>; }
@@ -214,16 +134,4 @@ function buildPromotedRuns(commandCenterData: NormalizedSalesData) {
       status: "Promoted",
     },
   ];
-function WorkflowRoute({ view, copy, launchView }: { view: View; copy: (text: string, label?: string) => void; launchView: (view: View) => void }) {
-  const { commandCenterData, setCommandCenterData, selectedAccount, selectedProspect, selectedIntent, dealIndex, selectAccount, selectProspect, selectDeal, selectIntent } = useWorkflowState();
-
-  if (view === "home") return <HomeView onLaunch={launchView} commandCenterData={commandCenterData} />;
-  if (view === "prospecting") return <ProspectingView selected={selectedAccount} onSelect={selectAccount} copy={copy} commandCenterData={commandCenterData} />;
-  if (view === "prospects") return <StrategyView selected={selectedProspect} onSelect={selectProspect} copy={copy} />;
-  if (view === "precall") return <PreCallView copy={copy} />;
-  if (view === "deals") return <DealsView dealIndex={dealIndex} setDealIndex={selectDeal} copy={copy} commandCenterData={commandCenterData} />;
-  if (view === "intent") return <IntentView selected={selectedIntent} onSelect={selectIntent} copy={copy} commandCenterData={commandCenterData} />;
-  if (view === "agent-inbox") return <AgentInbox promotedData={commandCenterData} onPromotedDataChange={setCommandCenterData} />;
-  if (view === "exports") return <ExportsView copy={copy} />;
-  return <SettingsView />;
 }

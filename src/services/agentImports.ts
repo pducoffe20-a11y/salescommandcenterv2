@@ -24,6 +24,7 @@ import type {
   Task,
   TimelineEvent,
   Trigger,
+  AgentArtifact as StoredAgentArtifact,
 } from "../types";
 
 export interface AgentAccountSignal {
@@ -115,7 +116,7 @@ export interface AgentEmailDraft {
   nextAction?: string;
 }
 
-export interface AgentArtifact {
+export interface AgentImportPayload {
   accounts?: AgentAccountSignal[];
   contacts?: AgentContactSignal[];
   triggers?: AgentTriggerSignal[];
@@ -307,7 +308,7 @@ export function normalizeEmailDraft(
 }
 
 export function normalizeAgentArtifacts(
-  artifact: AgentArtifact,
+  artifact: AgentImportPayload,
   baseData: NormalizedSalesData = seedSalesData,
 ): NormalizedSalesData {
   const nestedContacts = artifact.accounts?.flatMap((account) =>
@@ -385,4 +386,79 @@ export const seedSalesData: NormalizedSalesData = {
   timelineEvents: seedTimelineEvents,
 };
 
-export const salesData = normalizeAgentArtifacts({}, seedSalesData);
+
+const PROMOTED_SALES_DATA_KEY = "sales-command-center.promoted-sales-data.v1";
+
+export function normalizeStoredAgentArtifact(
+  artifact: StoredAgentArtifact,
+): AgentImportPayload {
+  const payload = artifact.payload ?? artifact.metadata?.payload;
+
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    return payload as AgentImportPayload;
+  }
+
+  const accountId = artifact.accountId ?? `imported-${slugify(artifact.title)}`;
+  const accountName =
+    typeof artifact.metadata?.accountName === "string"
+      ? artifact.metadata.accountName
+      : artifact.title;
+
+  return {
+    accounts: [
+      {
+        accountId,
+        accountName,
+        snapshot: artifact.body,
+        recommendedAction:
+          typeof artifact.metadata?.recommendedAction === "string"
+            ? artifact.metadata.recommendedAction
+            : "Review imported artifact and choose a next action.",
+        whyItMatters: artifact.source ?? "Imported agent artifact",
+        triggers: [
+          {
+            accountId,
+            title: artifact.title,
+            source: artifact.source ?? artifact.kind,
+            whyItMatters: artifact.body,
+            nextAction: "Validate the imported signal before outreach.",
+          },
+        ],
+      },
+    ],
+  };
+}
+
+export function promoteAgentArtifact(
+  artifact: StoredAgentArtifact,
+  baseData: NormalizedSalesData = loadPromotedSalesData(),
+): NormalizedSalesData {
+  return normalizeAgentArtifacts(normalizeStoredAgentArtifact(artifact), baseData);
+}
+
+export function loadPromotedSalesData(): NormalizedSalesData {
+  if (typeof window === "undefined" || !("localStorage" in window)) {
+    return seedSalesData;
+  }
+
+  const rawData = window.localStorage.getItem(PROMOTED_SALES_DATA_KEY);
+  if (!rawData) {
+    return seedSalesData;
+  }
+
+  try {
+    return { ...seedSalesData, ...(JSON.parse(rawData) as Partial<NormalizedSalesData>) };
+  } catch {
+    return seedSalesData;
+  }
+}
+
+export function savePromotedSalesData(data: NormalizedSalesData) {
+  if (typeof window === "undefined" || !("localStorage" in window)) {
+    return;
+  }
+
+  window.localStorage.setItem(PROMOTED_SALES_DATA_KEY, JSON.stringify(data));
+}
+
+export const salesData = loadPromotedSalesData();

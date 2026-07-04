@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Activity, ArrowRight, BriefcaseBusiness, CheckCircle2, ClipboardCopy, Database, Download, FileJson, FileText, Gauge, Home, Inbox, RadioTower, Search, Settings, Sparkles, Users } from "lucide-react";
 import { AgentInbox } from "./components/AgentInbox";
+import { loadPromotedSalesData, seedSalesData, type NormalizedSalesData } from "./services/agentImports";
 import { dealReviews, intentAccounts, pipelineStages, runHistory, sourceConnections, strategyRecords, territoryAccounts, workflows, type WorkflowId, type TerritoryAccount, type StrategyRecord, type IntentAccount } from "./workflowData";
 
 type View = "home" | WorkflowId | "agent-inbox";
@@ -25,6 +26,7 @@ export function App() {
   const [selectedProspect, setSelectedProspect] = useState(strategyRecords[0]);
   const [selectedIntent, setSelectedIntent] = useState(intentAccounts[0]);
   const [dealIndex, setDealIndex] = useState(0);
+  const [commandCenterData, setCommandCenterData] = useState<NormalizedSalesData>(() => loadPromotedSalesData());
 
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -49,13 +51,13 @@ export function App() {
       <div className="sidebar-card"><span className="eyebrow">Evidence rule</span><strong>Facts stay separate from inference.</strong><p>Mock data only. All drafts require human review before use.</p></div>
     </aside>
     <main className="main-stage">
-      {view === "home" && <HomeView onLaunch={(id) => setView(id)} />}
-      {view === "prospecting" && <ProspectingView selected={selectedAccount} onSelect={setSelectedAccount} copy={copy} />}
+      {view === "home" && <HomeView onLaunch={(id) => setView(id)} commandCenterData={commandCenterData} />}
+      {view === "prospecting" && <ProspectingView selected={selectedAccount} onSelect={setSelectedAccount} copy={copy} commandCenterData={commandCenterData} />}
       {view === "prospects" && <StrategyView selected={selectedProspect} onSelect={setSelectedProspect} copy={copy} />}
       {view === "precall" && <PreCallView copy={copy} />}
-      {view === "deals" && <DealsView dealIndex={dealIndex} setDealIndex={setDealIndex} copy={copy} />}
-      {view === "intent" && <IntentView selected={selectedIntent} onSelect={setSelectedIntent} copy={copy} />}
-      {view === "agent-inbox" && <AgentInbox />}
+      {view === "deals" && <DealsView dealIndex={dealIndex} setDealIndex={setDealIndex} copy={copy} commandCenterData={commandCenterData} />}
+      {view === "intent" && <IntentView selected={selectedIntent} onSelect={setSelectedIntent} copy={copy} commandCenterData={commandCenterData} />}
+      {view === "agent-inbox" && <AgentInbox promotedData={commandCenterData} onPromotedDataChange={setCommandCenterData} />}
       {view === "exports" && <ExportsView copy={copy} />}
       {view === "settings" && <SettingsView />}
     </main>
@@ -63,24 +65,25 @@ export function App() {
   </div>;
 }
 
-function HomeView({ onLaunch }: { onLaunch: (id: WorkflowId) => void }) {
+function HomeView({ onLaunch, commandCenterData }: { onLaunch: (id: WorkflowId) => void; commandCenterData: NormalizedSalesData }) {
   return <div className="workflow-page">
     <section className="mission-hero"><div><span className="eyebrow">D2L Brightspace agentic workflow home</span><h1>Mission control for outbound judgment.</h1><p>Organize Pat's ChatGPT-built seller agents into one evidence-aware command center for prioritization, strategy, meeting prep, deal review, and timely follow-up.</p><div className="hero-actions"><button className="primary-button" onClick={() => onLaunch("prospecting")}><Sparkles size={18}/> Start prospecting run</button><button className="secondary-button" onClick={() => onLaunch("settings")}>Review source readiness</button></div></div><EvidenceRail /></section>
     <section className="workflow-card-grid">{workflows.map((w) => <article className={`workflow-card accent-${w.accent}`} key={w.id}><div className="card-topline"><span>{w.status}</span><Activity size={18}/></div><h2>{w.name}</h2><p>{w.purpose}</p><div className="io-grid"><MiniList title="Inputs" items={w.inputs}/><MiniList title="Outputs" items={w.outputs}/></div><button className="text-button" onClick={() => onLaunch(w.id)}>Launch workflow <ArrowRight size={16}/></button></article>)}</section>
-    <section className="two-panel"><RunHistory /><SourcePanel compact /></section>
+    <section className="two-panel"><RunHistory commandCenterData={commandCenterData} /><SourcePanel compact /></section>
   </div>;
 }
 
 function EvidenceRail() { return <aside className="evidence-rail"><strong>Non-negotiables</strong>{["No invented evidence", "Assumptions labeled", "JSON is strategy truth", "No autonomous sending", "Future connectors are placeholders"].map((x) => <span className="status-chip" key={x}><CheckCircle2 size={14}/>{x}</span>)}</aside>; }
 function MiniList({ title, items }: { title: string; items: string[] }) { return <div><span className="eyebrow">{title}</span>{items.map((i) => <p key={i}>{i}</p>)}</div>; }
-function RunHistory() { return <section className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Run history</span><h2>Recent mock workflow runs</h2></div><Gauge size={20}/></div><div className="table-list">{runHistory.map((r) => <div className="table-row" key={`${r.workflow}-${r.date}`}><strong>{r.workflow}</strong><span>{r.date}</span><span>{r.source}</span><span>{r.output}</span><em>{r.status}</em><button className="text-button">Reopen</button></div>)}</div></section>; }
+function RunHistory({ commandCenterData }: { commandCenterData?: NormalizedSalesData }) { const promotedRuns = commandCenterData ? buildPromotedRuns(commandCenterData) : []; return <section className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Run history</span><h2>Recent mock workflow runs</h2></div><Gauge size={20}/></div><div className="table-list">{[...promotedRuns, ...runHistory].map((r) => <div className="table-row" key={`${r.workflow}-${r.date}-${r.output}`}><strong>{r.workflow}</strong><span>{r.date}</span><span>{r.source}</span><span>{r.output}</span><em>{r.status}</em><button className="text-button">Reopen</button></div>)}</div></section>; }
 function SourcePanel({ compact = false }: { compact?: boolean }) { return <section className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Integration readiness</span><h2>Source placeholders</h2></div><Database size={20}/></div><div className={compact ? "source-grid compact" : "source-grid"}>{sourceConnections.map((s) => <div className="source-card" key={s.name}><strong>{s.name}</strong><span className={`source-state state-${s.state.replace(/ /g, "-")}`}>{s.state}</span><p>{s.note}</p></div>)}</div></section>; }
 
-function ProspectingView({ selected, onSelect, copy }: { selected: TerritoryAccount; onSelect: (a: TerritoryAccount) => void; copy: (text: string, label?: string) => void }) {
+function ProspectingView({ selected, onSelect, copy, commandCenterData }: { selected: TerritoryAccount; onSelect: (a: TerritoryAccount) => void; copy: (text: string, label?: string) => void; commandCenterData: NormalizedSalesData }) {
   const groups = ["Work Now", "Validate", "Watch", "Deprioritize"] as const;
   return <div className="workflow-page"><PageHeader eyebrow="Module 1" title="Brightspace New-Logo Prospecting Hub" body="Rank net-new accounts by practical priority, show the evidence, and keep workbook assumptions from becoming fake truth." />
     <section className="panel module-panel intake-grid"><IntakeCard title="Territory intake" fields={["Upload workbook", "Upload account list", "Paste account names", "Territory segment", "Output type", "Depth: quick / deep / deeper"]}/><KpiStrip items={[ ["Work Now", "2"], ["Validate", "1"], ["Evidence avg", "62"], ["Weak fit suppressed", "1"] ]}/></section>
     <section className="board-grid">{groups.map((g) => <div className="board-column" key={g}><h2>{g}</h2>{territoryAccounts.filter((a) => a.status === g).map((a) => <button className={`account-work-card ${selected.account_id === a.account_id ? "active" : ""}`} onClick={() => onSelect(a)} key={a.account_id}><span className="rank">#{a.rank}</span><div><strong>{a.account_name}</strong><p>{a.brightspace_angle} · score {a.priority_score}</p><ScoreBars a={a}/></div></button>)}</div>)}</section>
+    <PromotedProspectingPanel commandCenterData={commandCenterData} />
     <section className="detail-drawer panel"><div className="section-heading"><div><span className="eyebrow">Account detail drawer</span><h2>{selected.account_name}</h2><p>{selected.recommended_next_action}</p></div><button className="text-button" onClick={() => copy(JSON.stringify(selected, null, 2), "Account JSON copied")}><FileJson size={16}/> Copy JSON</button></div><EvidenceColumns account={selected}/></section>
   </div>;
 }
@@ -117,18 +120,18 @@ function PreCallView({ copy }: { copy: (text: string, label?: string) => void })
 function Readiness() { return <div><div className="meter-track"><span style={{width:"72%"}} /></div><p>Prep completeness: 72%. Thin-context warning: budget, current platform, and decision process are unknown.</p></div>; }
 function Checklist({ type }: { type: string }) { const base = ["Confirm objective", "Name known facts", "Label assumptions", "Prepare soft next step"]; return <div className="check-panel"><h3>{type} checklist</h3>{base.map((b, i) => <label className="check-row" key={b}><input type="checkbox" defaultChecked={i < 2}/>{b}</label>)}</div>; }
 
-function DealsView({ dealIndex, setDealIndex, copy }: { dealIndex: number; setDealIndex: (n: number) => void; copy: (text: string, label?: string) => void }) {
+function DealsView({ dealIndex, setDealIndex, copy, commandCenterData }: { dealIndex: number; setDealIndex: (n: number) => void; copy: (text: string, label?: string) => void; commandCenterData: NormalizedSalesData }) {
   const deal = dealReviews[dealIndex];
   return <div className="workflow-page deal-mode"><PageHeader eyebrow="Module 4" title="Deal Intelligence Studio" body="Dark-mode deal command center for momentum, MEDDIC gaps, stakeholder coverage, and the next buyer-facing move." />
     <section className="deal-selector">{dealReviews.map((d, i) => <button className={`secondary-button ${i === dealIndex ? "active" : ""}`} onClick={() => setDealIndex(i)} key={d.account}>{d.account}</button>)}</section>
-    <section className="deal-dashboard panel"><div className="section-heading"><div><span className="eyebrow">Executive takeaway</span><h2>{deal.judgment}</h2><p>Confidence: {deal.confidence}. Salesforce is not connected; stage, amount, close date, and forecast are evidence gaps unless provided manually.</p></div><button className="text-button" onClick={() => copy(JSON.stringify(deal, null, 2), "Deal JSON copied")}>Copy review</button></div><KpiStrip items={[["Momentum", `${deal.momentum}`], ["Risk", `${deal.risk}`], ["Coverage", `${deal.stakeholderCoverage}`], ["Evidence", `${deal.evidence}`]]}/><div className="deal-grid"><Detail title="Top signals" items={deal.signals}/><Detail title="Risks and blockers" items={deal.risks}/><Detail title="Missing evidence" items={deal.gaps}/><Detail title="Recommended next moves" items={deal.nextMoves.map((m) => `${m.who}: ${m.angle} → ${m.outcome}`)}/></div><div className="meddic-grid">{(deal.meddic.length ? deal.meddic : dealReviews[0].meddic).map((m) => <article className="meddic-card" key={m.name}><strong>{m.name}</strong><span>{m.status} · {m.strength}</span><p>{m.missing}</p><em>{m.next}</em></article>)}</div></section>
+    <section className="deal-dashboard panel"><div className="section-heading"><div><span className="eyebrow">Executive takeaway</span><h2>{deal.judgment}</h2><p>Confidence: {deal.confidence}. Salesforce is not connected; stage, amount, close date, and forecast are evidence gaps unless provided manually.</p></div><button className="text-button" onClick={() => copy(JSON.stringify(deal, null, 2), "Deal JSON copied")}>Copy review</button></div><KpiStrip items={[["Momentum", `${deal.momentum}`], ["Risk", `${deal.risk}`], ["Coverage", `${deal.stakeholderCoverage}`], ["Evidence", `${deal.evidence}`]]}/><div className="deal-grid"><Detail title="Top signals" items={deal.signals}/><Detail title="Risks and blockers" items={deal.risks}/><Detail title="Missing evidence" items={deal.gaps}/><Detail title="Recommended next moves" items={deal.nextMoves.map((m) => `${m.who}: ${m.angle} → ${m.outcome}`)}/></div><PromotedDealPanel commandCenterData={commandCenterData} /><div className="meddic-grid">{(deal.meddic.length ? deal.meddic : dealReviews[0].meddic).map((m) => <article className="meddic-card" key={m.name}><strong>{m.name}</strong><span>{m.status} · {m.strength}</span><p>{m.missing}</p><em>{m.next}</em></article>)}</div></section>
   </div>;
 }
 
-function IntentView({ selected, onSelect, copy }: { selected: IntentAccount; onSelect: (a: IntentAccount) => void; copy: (text: string, label?: string) => void }) {
+function IntentView({ selected, onSelect, copy, commandCenterData }: { selected: IntentAccount; onSelect: (a: IntentAccount) => void; copy: (text: string, label?: string) => void; commandCenterData: NormalizedSalesData }) {
   return <div className="workflow-page"><PageHeader eyebrow="Module 5" title="Intent Alert Follow-Up Studio" body="Mock Outlook alert emails become account summaries and short Pat-style drafts. Outreach never mentions 6sense, tracking, or monitoring." />
     <section className="panel module-panel intake-grid"><IntakeCard title="Run setup" fields={["Lookback: last 7 days", "Sender: abm-alerts@6sense.com", "Story matching: on", "Output: Markdown + JSON"]}/><KpiStrip items={[["Emails found", "3"], ["Accounts", "3"], ["Repeated", "2"], ["Drafts", "3"]]}/></section>
-    <section className="intent-layout"><div className="panel module-panel"><h2>Account coverage</h2>{intentAccounts.map((a) => <button className="intent-row" key={a.name} onClick={() => onSelect(a)}><strong>{a.name}</strong><span>{a.evidenceStrength}</span><span>{a.repeatedActivity}</span><span>{a.storyMatch ?? "No forced story"}</span></button>)}</div><div className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Account detail drawer</span><h2>{selected.name}</h2></div><button className="text-button" onClick={() => copy(selected.draft, "Draft copied")}>Copy draft</button></div><Detail title="Raw alert evidence" items={selected.rawEvidence}/><h3>Plain-language sales takeaway</h3><p>{selected.summary}</p><h3>Outreach draft</h3><p className="message-box">{selected.draft}</p></div></section>
+    <section className="intent-layout"><div className="panel module-panel"><h2>Account coverage</h2>{intentAccounts.map((a) => <button className="intent-row" key={a.name} onClick={() => onSelect(a)}><strong>{a.name}</strong><span>{a.evidenceStrength}</span><span>{a.repeatedActivity}</span><span>{a.storyMatch ?? "No forced story"}</span></button>)}</div><div className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Account detail drawer</span><h2>{selected.name}</h2></div><button className="text-button" onClick={() => copy(selected.draft, "Draft copied")}>Copy draft</button></div><Detail title="Raw alert evidence" items={selected.rawEvidence}/><h3>Plain-language sales takeaway</h3><p>{selected.summary}</p><h3>Outreach draft</h3><p className="message-box">{selected.draft}</p></div></section><PromotedIntentPanel commandCenterData={commandCenterData} />
   </div>;
 }
 
@@ -138,3 +141,58 @@ function PageHeader({ eyebrow, title, body }: { eyebrow: string; title: string; 
 function IntakeCard({ title, fields }: { title: string; fields: string[] }) { return <div><span className="eyebrow">Mock controls</span><h2>{title}</h2><div className="field-chips">{fields.map((f) => <span className="status-chip" key={f}>{f}</span>)}</div></div>; }
 function KpiStrip({ items }: { items: string[][] }) { return <div className="kpi-strip module-kpis">{items.map(([label, value]) => <div className="kpi-card" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>; }
 function Detail({ title, items }: { title: string; items: string[] }) { return <div className="evidence-box"><h3>{title}</h3><ul>{items.map((i) => <li key={i}>{i}</li>)}</ul></div>; }
+
+function PromotedProspectingPanel({ commandCenterData }: { commandCenterData: NormalizedSalesData }) {
+  const promotedAccounts = commandCenterData.accounts.filter(
+    (account) => !territoryAccounts.some((seed) => seed.account_name === account.name),
+  );
+
+  if (!promotedAccounts.length) return null;
+
+  return <section className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Promoted command center accounts</span><h2>Imported prospecting work</h2></div></div><div className="board-grid">{promotedAccounts.map((account) => <article className="account-work-card" key={account.id}><span className="rank">★</span><div><strong>{account.name}</strong><p>{account.recommendedAction}</p><ScoreBars a={{ icp_fit_score: account.fitScore, why_now_score: account.timingScore, evidence_quality_score: account.momentumScore } as TerritoryAccount}/></div></article>)}</div></section>;
+}
+
+function PromotedDealPanel({ commandCenterData }: { commandCenterData: NormalizedSalesData }) {
+  const seedTaskIds = new Set(seedSalesData.tasks.map((task) => task.id));
+  const seedMeetingIds = new Set(seedSalesData.meetings.map((meeting) => meeting.id));
+  const promotedTasks = commandCenterData.tasks.filter((task) => !seedTaskIds.has(task.id)).slice(-5);
+  const promotedMeetings = commandCenterData.meetings.filter((meeting) => !seedMeetingIds.has(meeting.id)).slice(-5);
+
+  if (!promotedTasks.length && !promotedMeetings.length) return null;
+
+  return <section className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Promoted deal execution</span><h2>Tasks and meetings from agent imports</h2></div></div><div className="deal-grid"><Detail title="Promoted tasks" items={promotedTasks.map((task) => `${task.priority}: ${task.title} — ${task.nextAction}`)} /><Detail title="Promoted meetings" items={promotedMeetings.map((meeting) => `${meeting.title}: ${meeting.goal}`)} /></div></section>;
+}
+
+function PromotedIntentPanel({ commandCenterData }: { commandCenterData: NormalizedSalesData }) {
+  const seedTriggerIds = new Set(seedSalesData.triggers.map((trigger) => trigger.id));
+  const seedDraftIds = new Set(seedSalesData.emailDrafts.map((draft) => draft.id));
+  const promotedTriggers = commandCenterData.triggers.filter((trigger) => !seedTriggerIds.has(trigger.id)).slice(-5);
+  const promotedDrafts = commandCenterData.emailDrafts.filter((draft) => !seedDraftIds.has(draft.id)).slice(-5);
+
+  if (!promotedTriggers.length && !promotedDrafts.length) return null;
+
+  return <section className="panel module-panel"><div className="section-heading"><div><span className="eyebrow">Promoted intent follow-up</span><h2>Signals and drafts from agent imports</h2></div></div><div className="detail-grid"><Detail title="Promoted signals" items={promotedTriggers.map((trigger) => `${trigger.title}: ${trigger.nextAction}`)} /><Detail title="Promoted drafts" items={promotedDrafts.map((draft) => `${draft.subject}: ${draft.nextAction}`)} /></div></section>;
+}
+
+function buildPromotedRuns(commandCenterData: NormalizedSalesData) {
+  const promotedCount =
+    Math.max(0, commandCenterData.accounts.length - seedSalesData.accounts.length) +
+    Math.max(0, commandCenterData.tasks.length - seedSalesData.tasks.length) +
+    Math.max(0, commandCenterData.triggers.length - seedSalesData.triggers.length) +
+    Math.max(0, commandCenterData.emailDrafts.length - seedSalesData.emailDrafts.length) +
+    Math.max(0, commandCenterData.meetings.length - seedSalesData.meetings.length);
+
+  if (!promotedCount) {
+    return [];
+  }
+
+  return [
+    {
+      workflow: "Agent Inbox Promotion",
+      date: "Jul 3, 2026",
+      source: "Promoted agent artifacts",
+      output: `${promotedCount} normalized command center records`,
+      status: "Promoted",
+    },
+  ];
+}

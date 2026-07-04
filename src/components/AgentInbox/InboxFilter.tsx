@@ -32,16 +32,16 @@ export function InboxFilter({
         <div>
           <span className="eyebrow">Import queue</span>
           <h2 id="agent-import-heading">Clean import</h2>
-          <p>Review generated artifacts before they enter shared command center data.</p>
+          <p>Normalize JSON, CSV, or PDF artifacts before they enter shared command center data.</p>
         </div>
         <label className="agent-file-import">
           <FileUp size={17} aria-hidden="true" />
-          <span>Upload JSON</span>
+          <span>Upload file</span>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".json,application/json"
-            aria-label="Upload JSON artifact file"
+            accept=".json,.csv,.pdf,application/json,text/csv,application/pdf"
+            aria-label="Upload JSON CSV or PDF artifact file"
             onChange={(event) => onFileImport(event.target.files?.[0])}
           />
         </label>
@@ -49,9 +49,9 @@ export function InboxFilter({
 
       <div className="agent-import-grid">
         <label className="agent-import-editor">
-          <span>Artifact JSON</span>
+          <span>Artifact JSON or CSV</span>
           <textarea
-            aria-label="Agent artifact JSON import"
+            aria-label="Agent artifact JSON or CSV import"
             value={importText}
             onChange={(event) => onImportTextChange(event.target.value)}
             spellCheck={false}

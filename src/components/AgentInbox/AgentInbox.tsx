@@ -4,7 +4,12 @@ import type { AgentArtifact, AgentArtifactStatus } from "../../types";
 import type { NormalizedSalesData } from "../../services/agentImports";
 import { promoteAgentArtifact, savePromotedSalesData } from "../../services/agentImports";
 import { deleteArtifact, loadArtifacts, saveArtifact, updateArtifactStatus } from "../../services/storage";
-import { mergeArtifacts, parseArtifactImport, sampleArtifactImport } from "./artifactImport";
+import {
+  createPdfArtifactImportRows,
+  mergeArtifacts,
+  parseArtifactImport,
+  sampleArtifactImport,
+} from "./artifactImport";
 import { InboxFilter } from "./InboxFilter";
 import { InboxItem } from "./InboxItem";
 import type { CleanArtifactInput, ImportPreviewRow } from "./types";
@@ -69,10 +74,10 @@ export function AgentInbox({ promotedData, onPromotedDataChange }: AgentInboxPro
     setArtifacts((currentArtifacts) => currentArtifacts.filter((artifact) => artifact.id !== artifactId));
   }
 
-  function updateImportPreview(nextImportText: string) {
+  function updateImportPreview(nextImportText: string, sourceName = "Pasted import") {
     setImportText(nextImportText);
     setImportMessage("");
-    setImportPreviewRows(parseArtifactImport(nextImportText));
+    setImportPreviewRows(parseArtifactImport(nextImportText, sourceName));
   }
 
   async function importArtifacts() {
@@ -114,16 +119,38 @@ export function AgentInbox({ promotedData, onPromotedDataChange }: AgentInboxPro
     }
 
     const reader = new FileReader();
+
     reader.onload = () => {
-      if (typeof reader.result === "string") {
-        updateImportPreview(reader.result);
-        setImportMessage(`Loaded ${file.name}. Review the preview before saving.`);
-      } else {
-        setImportMessage("Could not read the selected JSON file.");
+      if (isPdfFile(file)) {
+        if (reader.result instanceof ArrayBuffer) {
+          const normalizedRows = createPdfArtifactImportRows(file.name, reader.result, file.type);
+          const normalizedArtifacts = normalizedRows.flatMap((row) => (row.artifact ? [row.artifact] : []));
+
+          setImportText(JSON.stringify(normalizedArtifacts, null, 2));
+          setImportPreviewRows(normalizedRows);
+          setImportMessage(`Loaded ${file.name}. Normalized ${normalizedArtifacts.length} PDF artifact for review.`);
+          return;
+        }
+
+        setImportMessage("Could not read the selected PDF file.");
+        return;
       }
+
+      if (typeof reader.result === "string") {
+        updateImportPreview(reader.result, file.name);
+        setImportMessage(`Loaded ${file.name}. Normalized the preview before saving.`);
+        return;
+      }
+
+      setImportMessage("Could not read the selected file.");
     };
-    reader.onerror = () => setImportMessage("Could not read the selected JSON file.");
-    reader.readAsText(file);
+    reader.onerror = () => setImportMessage("Could not read the selected file.");
+
+    if (isPdfFile(file)) {
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.readAsText(file);
+    }
   }
 
   const timestampFormatter = useMemo(
@@ -193,4 +220,8 @@ export function AgentInbox({ promotedData, onPromotedDataChange }: AgentInboxPro
       </div>
     </section>
   );
+}
+
+function isPdfFile(file: File) {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 }
